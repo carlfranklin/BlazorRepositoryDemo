@@ -2,8 +2,6 @@
 
 ## Overview
 
-Download the finished project at [https://blazorroadshow.azurewebsites.net/blazortrainfiles/repositorydemo.zip](https://blazorroadshow.azurewebsites.net/blazortrainfiles/repositorydemo.zip)
-
 In this module, we will create a hosted Blazor WebAssembly application with an API layer that uses the **repository pattern** to access two different data layers using a common interface, `IRepository`, which we will define. 
 
 We will use `IRepository` on the server to access data, and also on the client to define a generic API Repository, which wraps calls to the API with an `HttpClient` object.

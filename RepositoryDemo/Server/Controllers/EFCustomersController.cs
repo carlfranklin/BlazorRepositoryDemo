@@ -20,7 +20,7 @@ namespace RepositoryDemo.Server.Controllers
         {
             try
             {
-                var result = await customersManager.GetAll();
+                var result = await customersManager.GetAllAsync();
                 return Ok(new APIListOfEntityResponse<Customer>()
                 {
                     Success = true,
@@ -40,7 +40,7 @@ namespace RepositoryDemo.Server.Controllers
         {
             try
             {
-                var result = await customersManager.Get(Filter);
+                var result = await customersManager.GetAsync(Filter);
                 return Ok(new APIListOfEntityResponse<Customer>()
                 {
                     Success = true,
@@ -60,7 +60,7 @@ namespace RepositoryDemo.Server.Controllers
         {
             try
             {
-                var result = await customersManager.GetById(Id);
+                var result = await customersManager.GetByIdAsync(Id);
                 if (result != null)
                 {
                     return Ok(new APIEntityResponse<Customer>()
@@ -93,7 +93,7 @@ namespace RepositoryDemo.Server.Controllers
             try
             {
                 Customer.Id = 0; // Make sure you do this!
-                var result = await customersManager.Insert(Customer);
+                var result = await customersManager.InsertAsync(Customer);
                 if (result != null)
                 {
                     return Ok(new APIEntityResponse<Customer>()
@@ -126,7 +126,7 @@ namespace RepositoryDemo.Server.Controllers
         {
             try
             {
-                var result = await customersManager.Update(Customer);
+                var result = await customersManager.UpdateAsync(Customer);
                 if (result != null)
                 {
                     return Ok(new APIEntityResponse<Customer>()
@@ -158,7 +158,7 @@ namespace RepositoryDemo.Server.Controllers
         {
             try
             {
-                return await customersManager.Delete(Id);
+                return await customersManager.DeleteByIdAsync(Id);
             }
             catch (Exception ex)
             {
@@ -173,7 +173,7 @@ namespace RepositoryDemo.Server.Controllers
         {
             try
             {
-                await customersManager.DeleteAll();
+                await customersManager.DeleteAllAsync();
                 return NoContent();
             }
             catch (Exception ex)

@@ -11,31 +11,31 @@
         context.ChangeTracker.QueryTrackingBehavior = QueryTrackingBehavior.NoTracking;
         dbSet = context.Set<TEntity>();
     }
-    public async Task<IEnumerable<TEntity>> GetAll()
+    public async Task<IEnumerable<TEntity>> GetAllAsync()
     {
         await Task.Delay(0);
         return dbSet;
     }
 
-    public async Task<TEntity> GetById(object Id)
+    public async Task<TEntity> GetByIdAsync(object Id)
     {
         return await dbSet.FindAsync(Id);
     }
 
-    public async Task<IEnumerable<TEntity>> Get(QueryFilter<TEntity> Filter)
+    public async Task<IEnumerable<TEntity>> GetAsync(QueryFilter<TEntity> Filter)
     {
-        var allitems = (await GetAll()).ToList();
-        return await Filter.GetFilteredList(allitems);
+        var allitems = (await GetAllAsync()).ToList();
+        return await Filter.GetFilteredListAsync(allitems);
     }
 
-    public async Task<TEntity> Insert(TEntity entity)
+    public async Task<TEntity> InsertAsync(TEntity entity)
     {
         await dbSet.AddAsync(entity);
         await context.SaveChangesAsync();
         return entity;
     }
 
-    public async Task<TEntity> Update(TEntity entityToUpdate)
+    public async Task<TEntity> UpdateAsync(TEntity entityToUpdate)
     {
         var dbSet = context.Set<TEntity>();
         dbSet.Attach(entityToUpdate);
@@ -44,7 +44,7 @@
         return entityToUpdate;
     }
 
-    public async Task<bool> Delete(TEntity entityToDelete)
+    public async Task<bool> DeleteAsync(TEntity entityToDelete)
     {
         if (context.Entry(entityToDelete).State == EntityState.Detached)
         {
@@ -54,13 +54,13 @@
         return await context.SaveChangesAsync() >= 1;
     }
 
-    public async Task<bool> Delete(object id)
+    public async Task<bool> DeleteByIdAsync(object id)
     {
         TEntity entityToDelete = await dbSet.FindAsync(id);
-        return await Delete(entityToDelete);
+        return await DeleteAsync(entityToDelete);
     }
 
-    public async Task DeleteAll()
+    public async Task DeleteAllAsync()
     {
         await context.Database.ExecuteSqlRawAsync("TRUNCATE TABLE Customer");
     }

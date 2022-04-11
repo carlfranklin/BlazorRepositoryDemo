@@ -18,7 +18,7 @@ public class APIRepository<TEntity> : IRepository<TEntity>
         primaryKeyName = _primaryKeyName;
     }
 
-    public async Task<IEnumerable<TEntity>> GetAll()
+    public async Task<IEnumerable<TEntity>> GetAllAsync()
     {
         try
         {
@@ -39,7 +39,7 @@ public class APIRepository<TEntity> : IRepository<TEntity>
         }
     }
 
-    public async Task<IEnumerable<TEntity>> Get(QueryFilter<TEntity> Expression)
+    public async Task<IEnumerable<TEntity>> GetAsync(QueryFilter<TEntity> Expression)
     {
         try
         {
@@ -61,7 +61,7 @@ public class APIRepository<TEntity> : IRepository<TEntity>
         }
     }
 
-    public async Task<TEntity> GetById(object id)
+    public async Task<TEntity> GetByIdAsync(object id)
     {
         try
         {
@@ -84,7 +84,7 @@ public class APIRepository<TEntity> : IRepository<TEntity>
         }
     }
 
-    public async Task<TEntity> Insert(TEntity entity)
+    public async Task<TEntity> InsertAsync(TEntity entity)
     {
         try
         {
@@ -104,7 +104,7 @@ public class APIRepository<TEntity> : IRepository<TEntity>
         }
     }
 
-    public async Task<TEntity> Update(TEntity entityToUpdate)
+    public async Task<TEntity> UpdateAsync(TEntity entityToUpdate)
     {
         try
         {
@@ -123,7 +123,7 @@ public class APIRepository<TEntity> : IRepository<TEntity>
             return null;
         }
     }
-    public async Task<bool> Delete(TEntity entityToDelete)
+    public async Task<bool> DeleteAsync(TEntity entityToDelete)
     {
         try
         {
@@ -144,7 +144,7 @@ public class APIRepository<TEntity> : IRepository<TEntity>
             return false;
         }
     }
-    public async Task<bool> Delete(object id)
+    public async Task<bool> DeleteByIdAsync(object id)
     {
         try
         {
@@ -159,7 +159,7 @@ public class APIRepository<TEntity> : IRepository<TEntity>
         }
     }
 
-    public async Task DeleteAll()
+    public async Task DeleteAllAsync()
     {
         try
         {

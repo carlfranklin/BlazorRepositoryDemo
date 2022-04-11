@@ -1,6 +1,10 @@
 global using System.Linq.Expressions;
 global using System.Reflection;
 global using Microsoft.EntityFrameworkCore;
+global using System.Data.SqlClient;
+global using Dapper;
+global using Dapper.Contrib.Extensions;
+global using System.Data;
 using Microsoft.AspNetCore.ResponseCompression;
 using RepositoryDemo.Server.Data;
 
@@ -14,6 +18,9 @@ builder.Services.AddSingleton<MemoryRepository<Customer>>(x =>
   new MemoryRepository<Customer>("Id"));
 builder.Services.AddTransient<RepositoryDemoContext, RepositoryDemoContext>();
 builder.Services.AddTransient<EFRepository<Customer, RepositoryDemoContext>>();
+builder.Services.AddTransient<DapperRepository<Customer>>(s =>
+    new DapperRepository<Customer>(
+        builder.Configuration.GetConnectionString("RepositoryDemoConnectionString")));
 
 var app = builder.Build();
 

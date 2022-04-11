@@ -76,14 +76,14 @@ using System.Reflection;
 /// <typeparam name="TEntity"></typeparam>
 public interface IRepository<TEntity> where TEntity : class
 {
-    Task<bool> Delete(TEntity EntityToDelete);
-    Task<bool> Delete(object Id);
-    Task DeleteAll(); // Be Careful!!!
-    Task<IEnumerable<TEntity>> Get(QueryFilter<TEntity> Filter);
-    Task<IEnumerable<TEntity>> GetAll();
-    Task<TEntity> GetById(object Id);
-    Task<TEntity> Insert(TEntity Entity);
-    Task<TEntity> Update(TEntity EntityToUpdate);
+    Task<bool> DeleteAsync(TEntity EntityToDelete);
+    Task<bool> DeleteByIdAsync(object Id);
+    Task DeleteAllAsync(); // Be Careful!!!
+    Task<IEnumerable<TEntity>> GetAsync(QueryFilter<TEntity> Filter);
+    Task<IEnumerable<TEntity>> GetAllAsync();
+    Task<TEntity> GetByIdAsync(object Id);
+    Task<TEntity> InsertAsync(TEntity Entity);
+    Task<TEntity> UpdateAsync(TEntity EntityToUpdate);
 }
 
 /// <summary>
@@ -120,7 +120,7 @@ public class QueryFilter<TEntity> where TEntity : class
     /// </summary>
     /// <param name="AllItems"></param>
     /// <returns></returns>
-    public async Task<IEnumerable<TEntity>> GetFilteredList(List<TEntity> AllItems)
+    public async Task<IEnumerable<TEntity>> GetFilteredListAsync(List<TEntity> AllItems)
     {
         // Convert to IQueryable
         var query = AllItems.AsQueryable<TEntity>();
@@ -308,63 +308,18 @@ public class MemoryRepository<TEntity> : IRepository<TEntity> where TEntity : cl
         IdProperty = typeof(TEntity).GetProperty(idPropertyName);
     }
 
-    public async Task<bool> Delete(TEntity EntityToDelete)
-    {
-        if (EntityToDelete == null) return false;
-
-
-        await Task.Delay(0);
-        try
-        {
-            if (Data.Contains(EntityToDelete))
-            {
-                lock (Data)
-                {
-                    Data.Remove(EntityToDelete);
-                }
-                return true;
-            }
-        }
-        catch { }
-        return false;
-    }
-
-    public async Task<bool> Delete(object Id)
-    {
-        try
-        {
-            var EntityToDelete = await GetById(Id);
-            return await Delete(EntityToDelete);
-
-
-        }
-        catch { }
-        return false;
-    }
-
-    public async Task DeleteAll()
-    {
-        await Task.Delay(0);
-        lock (Data)
-        {
-            Data.Clear();
-        }
-    }
-
-    public async Task<IEnumerable<TEntity>> Get(QueryFilter<TEntity> JsonExpression)
+    public async Task<IEnumerable<TEntity>> GetAsync(QueryFilter<TEntity> JsonExpression)
     {
         
-        var allitems = (await GetAll()).ToList();
-        return await JsonExpression.GetFilteredList(allitems);
+        var allitems = (await GetAllAsync()).ToList();
+        return await JsonExpression.GetFilteredListAsync(allitems);
     }
-
-    public async Task<IEnumerable<TEntity>> GetAll()
+    public async Task<IEnumerable<TEntity>> GetAllAsync()
     {
         await Task.Delay(0);
         return Data;
     }
-
-    public async Task<TEntity> GetById(object Id)
+    public async Task<TEntity> GetByIdAsync(object Id)
     {
         await Task.Delay(0);
         if (IdProperty == null) return default(TEntity);
@@ -384,8 +339,7 @@ public class MemoryRepository<TEntity> : IRepository<TEntity> where TEntity : cl
         return entity;
     }
 
-
-    public async Task<TEntity> Insert(TEntity Entity)
+    public async Task<TEntity> InsertAsync(TEntity Entity)
     {
         await Task.Delay(0);
         if (Entity == null) return default(TEntity);
@@ -401,8 +355,7 @@ public class MemoryRepository<TEntity> : IRepository<TEntity> where TEntity : cl
         return default(TEntity);
     }
 
-
-    public async Task<TEntity> Update(TEntity EntityToUpdate)
+    public async Task<TEntity> UpdateAsync(TEntity EntityToUpdate)
     {
         await Task.Delay(0);
         if (EntityToUpdate == null) return default(TEntity);
@@ -410,7 +363,7 @@ public class MemoryRepository<TEntity> : IRepository<TEntity> where TEntity : cl
         try
         {
             var id = IdProperty.GetValue(EntityToUpdate);
-            var entity = await GetById(id);
+            var entity = await GetByIdAsync(id);
             if (entity != null)
             {
                 lock (Data)
@@ -425,6 +378,46 @@ public class MemoryRepository<TEntity> : IRepository<TEntity> where TEntity : cl
         }
         catch { }
         return default(TEntity);
+    }
+
+    public async Task<bool> DeleteAsync(TEntity EntityToDelete)
+    {
+        if (EntityToDelete == null) return false;
+
+        await Task.Delay(0);
+        try
+        {
+            if (Data.Contains(EntityToDelete))
+            {
+                lock (Data)
+                {
+                    Data.Remove(EntityToDelete);
+                }
+                return true;
+            }
+        }
+        catch { }
+        return false;
+    }
+
+    public async Task<bool> DeleteByIdAsync(object Id)
+    {
+        try
+        {
+            var EntityToDelete = await GetByIdAsync(Id);
+            return await DeleteAsync(EntityToDelete);
+        }
+        catch { }
+        return false;
+    }
+
+    public async Task DeleteAllAsync()
+    {
+        await Task.Delay(0);
+        lock (Data)
+        {
+            Data.Clear();
+        }
     }
 }
 ```
@@ -459,6 +452,7 @@ To the server project's *Controllers* folder, add the following:
 ```c#
 using Microsoft.AspNetCore.Mvc;
 
+
 namespace RepositoryDemo.Server.Controllers
 {
     [Route("[controller]")]
@@ -477,7 +471,7 @@ namespace RepositoryDemo.Server.Controllers
         {
             try
             {
-                var result = await customersManager.GetAll();
+                var result = await customersManager.GetAllAsync();
                 return Ok(new APIListOfEntityResponse<Customer>()
                 {
                     Success = true,
@@ -497,7 +491,7 @@ namespace RepositoryDemo.Server.Controllers
         {
             try
             {
-                var result = await customersManager.Get(Filter);
+                var result = await customersManager.GetAsync(Filter);
                 return Ok(new APIListOfEntityResponse<Customer>()
                 {
                     Success = true,
@@ -517,7 +511,7 @@ namespace RepositoryDemo.Server.Controllers
         {
             try
             {
-                var result = await customersManager.GetById(Id);
+                var result = await customersManager.GetByIdAsync(Id);
                 if (result != null)
                 {
                     return Ok(new APIEntityResponse<Customer>()
@@ -549,7 +543,7 @@ namespace RepositoryDemo.Server.Controllers
         {
             try
             {
-                var result = await customersManager.Insert(Customer);
+                var result = await customersManager.InsertAsync(Customer);
                 if (result != null)
                 {
                     return Ok(new APIEntityResponse<Customer>()
@@ -583,7 +577,7 @@ namespace RepositoryDemo.Server.Controllers
         {
             try
             {
-                var result = await customersManager.Update(Customer);
+                var result = await customersManager.UpdateAsync(Customer);
                 if (result != null)
                 {
                     return Ok(new APIEntityResponse<Customer>()
@@ -615,7 +609,7 @@ namespace RepositoryDemo.Server.Controllers
         {
             try
             {
-                return await customersManager.Delete(Id);
+                return await customersManager.DeleteByIdAsync(Id);
             }
             catch (Exception ex)
             {
@@ -631,7 +625,7 @@ namespace RepositoryDemo.Server.Controllers
         {
             try
             {
-                await customersManager.DeleteAll();
+                await customersManager.DeleteAllAsync();
                 return NoContent();
             }
             catch (Exception ex)
@@ -692,7 +686,7 @@ public class APIRepository<TEntity> : IRepository<TEntity>
         primaryKeyName = _primaryKeyName;
     }
 
-    public async Task<IEnumerable<TEntity>> GetAll()
+    public async Task<IEnumerable<TEntity>> GetAllAsync()
     {
         try
         {
@@ -713,7 +707,7 @@ public class APIRepository<TEntity> : IRepository<TEntity>
         }
     }
 
-    public async Task<IEnumerable<TEntity>> Get(QueryFilter<TEntity> Expression)
+    public async Task<IEnumerable<TEntity>> GetAsync(QueryFilter<TEntity> Expression)
     {
         try
         {
@@ -735,7 +729,7 @@ public class APIRepository<TEntity> : IRepository<TEntity>
         }
     }
 
-    public async Task<TEntity> GetById(object id)
+    public async Task<TEntity> GetByIdAsync(object id)
     {
         try
         {
@@ -758,7 +752,7 @@ public class APIRepository<TEntity> : IRepository<TEntity>
         }
     }
 
-    public async Task<TEntity> Insert(TEntity entity)
+    public async Task<TEntity> InsertAsync(TEntity entity)
     {
         try
         {
@@ -778,7 +772,7 @@ public class APIRepository<TEntity> : IRepository<TEntity>
         }
     }
 
-    public async Task<TEntity> Update(TEntity entityToUpdate)
+    public async Task<TEntity> UpdateAsync(TEntity entityToUpdate)
     {
         try
         {
@@ -797,7 +791,7 @@ public class APIRepository<TEntity> : IRepository<TEntity>
             return null;
         }
     }
-    public async Task<bool> Delete(TEntity entityToDelete)
+    public async Task<bool> DeleteAsync(TEntity entityToDelete)
     {
         try
         {
@@ -818,7 +812,7 @@ public class APIRepository<TEntity> : IRepository<TEntity>
             return false;
         }
     }
-    public async Task<bool> Delete(object id)
+    public async Task<bool> DeleteByIdAsync(object id)
     {
         try
         {
@@ -833,7 +827,7 @@ public class APIRepository<TEntity> : IRepository<TEntity>
         }
     }
 
-    public async Task DeleteAll()
+    public async Task DeleteAllAsync()
     {
         try
         {
@@ -854,17 +848,19 @@ public class APIRepository<TEntity> : IRepository<TEntity>
 Take a look at the constructor. We're passing in an `HttpClient` with it's `BaseAddress` property already set, the controller name, and the primary key name.
 
 ```c#
-    string controllerName;
-    string primaryKeyName;
-    HttpClient http;
+string controllerName;
+string primaryKeyName;
+HttpClient http;
 
-    public APIRepository(HttpClient _http,
-        string _controllerName, string _primaryKeyName)
-    {
-        http = _http;
-        controllerName = _controllerName;
-        primaryKeyName = _primaryKeyName;
-    }
+public APIRepository(
+    HttpClient _http,
+    string _controllerName, 
+    string _primaryKeyName)
+{
+    http = _http;
+    controllerName = _controllerName;
+    primaryKeyName = _primaryKeyName;
+}
 ```
 
 #### Create a Customer Repository on the client
@@ -1002,7 +998,7 @@ Change *\Pages\Index.razor* to the following:
             //expression.OrderByDescending = Descending;
 
 
-            var list = await CustomerManager.Get(expression);
+            var list = await CustomerManager.GetAsync(expression);
             Customers = list.ToList();
 
         }
@@ -1019,7 +1015,7 @@ Change *\Pages\Index.razor* to the following:
                      select x).FirstOrDefault();
         if (rocky != null)
         {
-            await CustomerManager.Delete(rocky);
+            await CustomerManager.DeleteAsync(rocky);
             await Reload();
         }
     }
@@ -1031,7 +1027,7 @@ Change *\Pages\Index.razor* to the following:
                     select x).FirstOrDefault();
         if (hugh != null)
         {
-            await CustomerManager.Delete(hugh.Id);
+            await CustomerManager.DeleteByIdAsync(hugh.Id);
             await Reload();
         }
     }
@@ -1044,7 +1040,7 @@ Change *\Pages\Index.razor* to the following:
         if (isadora != null)
         {
             isadora.Email = "isadora@isadorajarr.com";
-            await CustomerManager.Update(isadora);
+            await CustomerManager.UpdateAsync(isadora);
             await Reload();
         }
     }
@@ -1057,7 +1053,7 @@ Change *\Pages\Index.razor* to the following:
                      select x).FirstOrDefault();
         if (jenny != null)
         {
-            var jennyDb = await CustomerManager.GetById(jenny.Id);
+            var jennyDb = await CustomerManager.GetByIdAsync(jenny.Id);
             if (jennyDb != null)
             {
                 JennyMessage = $"Retrieved Jenny via Id {jennyDb.Id}";
@@ -1074,7 +1070,7 @@ Change *\Pages\Index.razor* to the following:
     async Task Reload()
     {
         JennyMessage = "";
-        var list = await CustomerManager.GetAll();
+        var list = await CustomerManager.GetAllAsync();
         if (list != null)
         {
             Customers = list.ToList();
@@ -1084,32 +1080,32 @@ Change *\Pages\Index.razor* to the following:
 
     async Task AddCustomers()
     {
-        await CustomerManager.DeleteAll();
+        await CustomerManager.DeleteAllAsync();
 
         Customers.Clear();
 
-        await CustomerManager.Insert(new Customer
+        await CustomerManager.InsertAsync(new Customer
             {
                 Id = 1,
                 Name = "Isadora Jarr",
                 Email = "isadora@jarr.com"
             });
 
-        await CustomerManager.Insert(new Customer
+        await CustomerManager.InsertAsync(new Customer
             {
                 Id = 2,
                 Name = "Rocky Rhodes",
                 Email = "rocky@rhodes.com"
             });
 
-        await CustomerManager.Insert(new Customer
+        await CustomerManager.InsertAsync(new Customer
             {
                 Id = 3,
                 Name = "Jenny Jones",
                 Email = "jenny@jones.com"
             });
 
-        await CustomerManager.Insert(new Customer
+        await CustomerManager.InsertAsync(new Customer
             {
                 Id = 4,
                 Name = "Hugh Jass",
@@ -1247,31 +1243,31 @@ public class EFRepository<TEntity, TDataContext> : IRepository<TEntity>
         context.ChangeTracker.QueryTrackingBehavior = QueryTrackingBehavior.NoTracking;
         dbSet = context.Set<TEntity>();
     }
-    public async Task<IEnumerable<TEntity>> GetAll()
+    public async Task<IEnumerable<TEntity>> GetAllAsync()
     {
         await Task.Delay(0);
         return dbSet;
     }
 
-    public async Task<TEntity> GetById(object Id)
+    public async Task<TEntity> GetByIdAsync(object Id)
     {
         return await dbSet.FindAsync(Id);
     }
 
-    public async Task<IEnumerable<TEntity>> Get(QueryFilter<TEntity> Filter)
+    public async Task<IEnumerable<TEntity>> GetAsync(QueryFilter<TEntity> Filter)
     {
-        var allitems = (await GetAll()).ToList();
-        return await Filter.GetFilteredList(allitems);
+        var allitems = (await GetAllAsync()).ToList();
+        return await Filter.GetFilteredListAsync(allitems);
     }
 
-    public async Task<TEntity> Insert(TEntity entity)
+    public async Task<TEntity> InsertAsync(TEntity entity)
     {
         await dbSet.AddAsync(entity);
         await context.SaveChangesAsync();
         return entity;
     }
 
-    public async Task<TEntity> Update(TEntity entityToUpdate)
+    public async Task<TEntity> UpdateAsync(TEntity entityToUpdate)
     {
         var dbSet = context.Set<TEntity>();
         dbSet.Attach(entityToUpdate);
@@ -1280,7 +1276,7 @@ public class EFRepository<TEntity, TDataContext> : IRepository<TEntity>
         return entityToUpdate;
     }
 
-    public async Task<bool> Delete(TEntity entityToDelete)
+    public async Task<bool> DeleteAsync(TEntity entityToDelete)
     {
         if (context.Entry(entityToDelete).State == EntityState.Detached)
         {
@@ -1290,13 +1286,13 @@ public class EFRepository<TEntity, TDataContext> : IRepository<TEntity>
         return await context.SaveChangesAsync() >= 1;
     }
 
-    public async Task<bool> Delete(object id)
+    public async Task<bool> DeleteByIdAsync(object id)
     {
         TEntity entityToDelete = await dbSet.FindAsync(id);
-        return await Delete(entityToDelete);
+        return await DeleteAsync(entityToDelete);
     }
 
-    public async Task DeleteAll()
+    public async Task DeleteAllAsync()
     {
         await context.Database.ExecuteSqlRawAsync("TRUNCATE TABLE Customer");
     }
@@ -1330,7 +1326,7 @@ namespace RepositoryDemo.Server.Controllers
         {
             try
             {
-                var result = await customersManager.GetAll();
+                var result = await customersManager.GetAllAsync();
                 return Ok(new APIListOfEntityResponse<Customer>()
                 {
                     Success = true,
@@ -1350,7 +1346,7 @@ namespace RepositoryDemo.Server.Controllers
         {
             try
             {
-                var result = await customersManager.Get(Filter);
+                var result = await customersManager.GetAsync(Filter);
                 return Ok(new APIListOfEntityResponse<Customer>()
                 {
                     Success = true,
@@ -1370,7 +1366,7 @@ namespace RepositoryDemo.Server.Controllers
         {
             try
             {
-                var result = await customersManager.GetById(Id);
+                var result = await customersManager.GetByIdAsync(Id);
                 if (result != null)
                 {
                     return Ok(new APIEntityResponse<Customer>()
@@ -1403,7 +1399,7 @@ namespace RepositoryDemo.Server.Controllers
             try
             {
                 Customer.Id = 0; // Make sure you do this!
-                var result = await customersManager.Insert(Customer);
+                var result = await customersManager.InsertAsync(Customer);
                 if (result != null)
                 {
                     return Ok(new APIEntityResponse<Customer>()
@@ -1436,7 +1432,7 @@ namespace RepositoryDemo.Server.Controllers
         {
             try
             {
-                var result = await customersManager.Update(Customer);
+                var result = await customersManager.UpdateAsync(Customer);
                 if (result != null)
                 {
                     return Ok(new APIEntityResponse<Customer>()
@@ -1468,7 +1464,7 @@ namespace RepositoryDemo.Server.Controllers
         {
             try
             {
-                return await customersManager.Delete(Id);
+                return await customersManager.DeleteByIdAsync(Id);
             }
             catch (Exception ex)
             {
@@ -1483,7 +1479,7 @@ namespace RepositoryDemo.Server.Controllers
         {
             try
             {
-                await customersManager.DeleteAll();
+                await customersManager.DeleteAllAsync();
                 return NoContent();
             }
             catch (Exception ex)
@@ -1544,4 +1540,609 @@ After running the app, take a look at the database by right-clicking on the **Cu
 
 ![image-20220323191200976](images/image-20220323191200976.png)
 
-That's it!
+### Add a Dapper Repository
+
+Update the *appsettings.json* file in the Server project to add the **RepositoryDemo** database connection string:
+
+```json
+{
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft.AspNetCore": "Warning"
+    }
+  },
+  "AllowedHosts": "*",
+  "ConnectionStrings": {
+    "RepositoryDemoConnectionString": "Data Source=(localdb)\\MSSQLLocalDB;Initial Catalog=RepositoryDemo;Integrated Security=True;Connect Timeout=30;Encrypt=False;TrustServerCertificate=False;ApplicationIntent=ReadWrite;MultiSubnetFailover=False",
+  }
+}
+```
+
+Add the following packages to the Server project's *.csproj* file:
+
+```xml
+<PackageReference Include="Dapper" Version="2.0.123" />
+<PackageReference Include="Dapper.Contrib" Version="2.0.78" />
+<PackageReference Include="System.Data.SqlClient" Version="4.8.3" />
+```
+
+Add the following global using statements to the top of the Server project's *Program.cs* file:
+
+```c#
+global using System.Data.SqlClient;
+global using Dapper;
+global using Dapper.Contrib.Extensions;
+global using System.Data;
+```
+
+To the *Data* folder, add *DapperSqlHelper.cs*:
+
+```c#
+public class DapperSqlHelper
+{
+    public static string GetDapperInsertStatement(object Entity, string TableName)
+    {
+        // let's get the SQL string started.
+        string sql = $"insert into {TableName} (";
+
+        // Get the type, and the list of public properties
+        var EntityType = Entity.GetType();
+        var Properties = EntityType.GetProperties();
+
+        foreach (var property in Properties)
+        {
+            // Is this property nullable?
+            if (Nullable.GetUnderlyingType(property.PropertyType) != null)
+            {
+                // yes. get the value.
+                var value = property.GetValue(Entity);
+                // is the value null?
+                if (value != null)
+                    // only add if the value is not null
+                    sql += $"{property.Name}, ";
+            }
+            // is this property virtual (like Customer.Invoices)?
+            else if (property.GetGetMethod().IsVirtual == false)
+            {
+                // not virtual. Include
+                sql += $"{property.Name}, ";
+            }
+        }
+
+        // At this point there is a trailing ", " that we need to remove
+        sql = sql.Substring(0, sql.Length - 2);
+
+        // add the start of the values clause
+        sql += ") values (";
+
+        // Once more through the properties
+        foreach (var property in Properties)
+        {
+            if (Nullable.GetUnderlyingType(property.PropertyType) != null)
+            {
+                var value = property.GetValue(Entity);
+                if (value != null)
+                    // inserts in Dapper are paramterized, so at least
+                    // we don't have to figure out data types, quotes, etc.
+                    sql += $"@{property.Name}, ";
+            }
+            else if (property.GetGetMethod().IsVirtual == false)
+            {
+                sql += $"@{property.Name}, ";
+            }
+        }
+
+        // again, remove the trailing ", " and finish with a closed paren 
+        sql = sql.Substring(0, sql.Length - 2) + ")";
+
+        // we're outta here!
+        return sql;
+    }
+}
+```
+
+This helper method let's you create a custom parameterized SQL INSERT string based on the primary key.
+
+To the *Data* folder, add *DapperRepository.cs*:
+
+```c#
+public class DapperRepository<TEntity> : IRepository<TEntity> where TEntity : class
+{
+    private string _sqlConnectionString;
+    private string entityName;
+    private Type entityType;
+
+    private string primaryKeyName;
+    private string primaryKeyType;
+    private bool PKNotIdentity = false;
+
+    public DapperRepository(string sqlConnectionString)
+    {
+        _sqlConnectionString = sqlConnectionString;
+        entityType = typeof(TEntity);
+        entityName = entityType.Name;
+
+        var props = entityType.GetProperties().Where(
+            prop => Attribute.IsDefined(prop,
+            typeof(KeyAttribute)));
+        if (props.Count() > 0)
+        {
+            primaryKeyName = props.First().Name;
+            primaryKeyType = props.First().PropertyType.Name;
+        }
+        else
+        {
+            // Default
+            primaryKeyName = "Id";
+            primaryKeyType = "Int32";
+        }
+
+        // look for [ExplicitKey]
+        props = entityType.GetProperties().Where(
+            prop => Attribute.IsDefined(prop,
+            typeof(ExplicitKeyAttribute)));
+        if (props.Count() > 0)
+        {
+            PKNotIdentity = true;
+            primaryKeyName = props.First().Name;
+            primaryKeyType = props.First().PropertyType.Name;
+        }
+    }
+
+    public async Task<IEnumerable<TEntity>> GetAsync(QueryFilter<TEntity> Filter)
+    {
+        using (IDbConnection db = new SqlConnection(_sqlConnectionString))
+        {
+            try
+            {
+                // let's try this
+                var dictionary = new Dictionary<string, object>();
+                foreach (var column in Filter.FilterProperties)
+                {
+                    dictionary.Add(column.Name, column.Value);
+                }
+                var parameters = new DynamicParameters(dictionary);
+                var sql = "select "; // * from products where ProductId = @ProductId";
+                if (Filter.IncludePropertyNames.Count > 0)
+                {
+                    foreach (var propertyName in Filter.IncludePropertyNames)
+                    {
+                        sql += propertyName;
+                        if (propertyName != Filter.IncludePropertyNames.Last())
+                            sql += ", ";
+                    }
+                }
+                else
+                    sql += "* ";
+                sql += $"from {entityName} ";
+                if (dictionary.Count > 0)
+                {
+                    sql += "where ";
+                    int count = 0;
+                    if (Filter.FilterProperties[count].CaseSensitive)
+                    {
+                        sql += "BINARY ";
+                    }
+
+                    foreach (var key in dictionary.Keys)
+                    {
+                        switch (Filter.FilterProperties[count].Operator)
+                        {
+                            case FilterOperator.Equals:
+                                sql += $"{key} = @{key} ";
+                                break;
+                            case FilterOperator.NotEquals:
+                                sql += $"{key} <> @{key} ";
+                                break;
+                            case FilterOperator.StartsWith:
+                                sql += $"{key} like @{key} + '%' ";
+                                break;
+                            case FilterOperator.EndsWith:
+                                sql += $"{key} like '%' + @{key} ";
+                                break;
+                            case FilterOperator.Contains:
+                                sql += $"{key} like '%' + @{key} + '%' ";
+                                break;
+                            case FilterOperator.LessThan:
+                                sql += $"{key} < @{key} ";
+                                break;
+                            case FilterOperator.LessThanOrEqual:
+                                sql += $"{key} =< @{key} ";
+                                break;
+                            case FilterOperator.GreaterThan:
+                                sql += $"{key} > @{key} ";
+                                break;
+                            case FilterOperator.GreaterThanOrEqual:
+                                sql += $"{key} >= @{key} ";
+                                break;
+                        }
+
+                        if (key != dictionary.Keys.Last())
+                        {
+                            sql += "and ";
+                        }
+                        count++;
+                    }
+                }
+                if (Filter.OrderByPropertyName != "")
+                {
+                    sql += $"order by {Filter.OrderByPropertyName} ";
+                    if (Filter.OrderByDescending)
+                    {
+                        sql += "desc";
+                    }
+                }
+
+                var result = await db.QueryAsync<TEntity>(sql, parameters);
+                return result;
+            }
+            catch (Exception ex)
+            {
+                return (IEnumerable<TEntity>)new List<TEntity>();
+            }
+        }
+    }
+
+    public async Task<TEntity> GetByIdAsync(object Id)
+    {
+        await Task.Delay(0);
+        using (IDbConnection db = new SqlConnection(_sqlConnectionString))
+        {
+            db.Open();
+            var item = db.Get<TEntity>(Id);
+            return item;
+        }
+    }
+
+    public async Task<IEnumerable<TEntity>> GetAllAsync()
+    {
+        using (IDbConnection db = new SqlConnection(_sqlConnectionString))
+        {
+            db.Open();
+            //string sql = $"select * from {entityName}";
+            //IEnumerable<TEntity> result = await db.QueryAsync<TEntity>(sql);
+            //return result;
+            return await db.GetAllAsync<TEntity>();
+        }
+    }
+
+    public async Task<TEntity> InsertAsync(TEntity entity)
+    {
+        using (IDbConnection db = new SqlConnection(_sqlConnectionString))
+        {
+            db.Open();
+            // start a transaction in case something goes wrong
+            await db.ExecuteAsync("begin transaction");
+            try
+            {
+                // Get the primary key property
+                var prop = entityType.GetProperty(primaryKeyName);
+
+                // int key?
+                if (primaryKeyType == "Int32")
+                {
+                    // not an identity?
+                    if (PKNotIdentity == true)
+                    {
+                        // get the highest value
+                        var sql = $"select max({primaryKeyName}) from {entityName}";
+                        // and add 1 to it
+                        var Id = Convert.ToInt32(db.ExecuteScalar(sql)) + 1;
+                        // update the entity
+                        prop.SetValue(entity, Id);
+                        // do the insert
+                        db.Insert<TEntity>(entity);
+                    }
+                    else
+                    {
+                        // key will be created by the database
+                        var Id = (int)db.Insert<TEntity>(entity);
+                        // set the value
+                        prop.SetValue(entity, Id);
+                    }
+                }
+                else if (primaryKeyType == "String")
+                {
+                    // string primary key. Use my helper
+                    string sql = DapperSqlHelper.GetDapperInsertStatement(entity, entityName);
+                    await db.ExecuteAsync(sql, entity);
+                }
+                // if we got here, we're good!
+                await db.ExecuteAsync("commit transaction");
+                return entity;
+            }
+            catch (Exception ex)
+            {
+                var msg = ex.Message;
+                await db.ExecuteAsync("rollback transaction");
+                return null;
+            }
+        }
+    }
+
+    public async Task<TEntity> UpdateAsync(TEntity entity)
+    {
+        using (IDbConnection db = new SqlConnection(_sqlConnectionString))
+        {
+            db.Open();
+            try
+            {
+                //string sql = DapperSqlHelper.GetDapperUpdateStatement(entity, entityName, primaryKeyName);
+                //await db.ExecuteAsync(sql, entity);
+                await db.UpdateAsync<TEntity>(entity);
+                return entity;
+            }
+            catch (Exception ex)
+            {
+                return null;
+            }
+        }
+    }
+    public async Task<bool> DeleteAsync(TEntity entityToDelete)
+    {
+        using (IDbConnection db = new SqlConnection(_sqlConnectionString))
+        {
+            //string sql = $"delete from {entityName} where {primaryKeyName}" +
+            //    $" = @{primaryKeyName}";
+            try
+            {
+                //await db.ExecuteAsync(sql, entityToDelete);
+                await db.DeleteAsync<TEntity>(entityToDelete);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                return false;
+            }
+        }
+    }
+
+    public async Task<bool> DeleteByIdAsync(object Id)
+    {
+        var item = await GetByIdAsync(Id);
+        var status = await DeleteAsync(item);
+        return status;
+    }
+
+    public async Task DeleteAllAsync()
+    {
+        using (IDbConnection db = new SqlConnection(_sqlConnectionString))
+        {
+            try
+            {
+                // Use at your own risk!
+                await db.ExecuteAsync($"TRUNCATE TABLE {entityName}");
+            }
+            catch (Exception ex)
+            {
+                var msg = ex.Message;
+            }
+        }
+    }
+}
+```
+
+Add this to the Server project's *Program.cs* file:
+
+```c#
+builder.Services.AddTransient<DapperRepository<Customer>>(s =>
+    new DapperRepository<Customer>(
+        builder.Configuration.GetConnectionString("RepositoryDemoConnectionString")));
+```
+
+To the Server project's *Controllers* folder, add *DapperCustomersController.cs*:
+
+```c#
+using Microsoft.AspNetCore.Mvc;
+using RepositoryDemo.Server.Data;
+
+
+namespace RepositoryDemo.Server.Controllers
+{
+    [Route("[controller]")]
+    [ApiController]
+    public class DapperCustomersController : ControllerBase
+    {
+        DapperRepository<Customer> customersManager;
+
+        public DapperCustomersController(DapperRepository<Customer> _customersManager)
+        {
+            customersManager = _customersManager;
+        }
+
+        [HttpGet]
+        public async Task<ActionResult<APIListOfEntityResponse<Customer>>> Get()
+        {
+            try
+            {
+                var result = await customersManager.GetAllAsync();
+                return Ok(new APIListOfEntityResponse<Customer>()
+                {
+                    Success = true,
+                    Data = result
+                });
+            }
+            catch (Exception ex)
+            {
+                // log exception here
+                return StatusCode(500);
+            }
+        }
+
+        [HttpPost("getwithfilter")]
+        public async Task<ActionResult<APIListOfEntityResponse<Customer>>>
+            GetWithFilter([FromBody] QueryFilter<Customer> Filter)
+        {
+            try
+            {
+                var result = await customersManager.GetAsync(Filter);
+                return Ok(new APIListOfEntityResponse<Customer>()
+                {
+                    Success = true,
+                    Data = result.ToList()
+                });
+            }
+            catch (Exception ex)
+            {
+                // log exception here
+                var msg = ex.Message;
+                return StatusCode(500);
+            }
+        }
+
+        [HttpGet("{Id}")]
+        public async Task<ActionResult<APIEntityResponse<Customer>>> GetById(int Id)
+        {
+            try
+            {
+                var result = await customersManager.GetByIdAsync(Id);
+                if (result != null)
+                {
+                    return Ok(new APIEntityResponse<Customer>()
+                    {
+                        Success = true,
+                        Data = result
+                    });
+                }
+                else
+                {
+                    return Ok(new APIEntityResponse<Customer>()
+                    {
+                        Success = false,
+                        ErrorMessages = new List<string>() { "Customer Not Found" },
+                        Data = null
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                // log exception here
+                return StatusCode(500);
+            }
+        }
+
+        [HttpPost]
+        public async Task<ActionResult<APIEntityResponse<Customer>>>
+         Insert([FromBody] Customer Customer)
+        {
+            try
+            {
+                Customer.Id = 0; // Make sure you do this!
+                var result = await customersManager.InsertAsync(Customer);
+                if (result != null)
+                {
+                    return Ok(new APIEntityResponse<Customer>()
+                    {
+                        Success = true,
+                        Data = result
+                    });
+                }
+                else
+                {
+                    return Ok(new APIEntityResponse<Customer>()
+                    {
+                        Success = false,
+                        ErrorMessages = new List<string>()
+               { "Could not find customer after adding it." },
+                        Data = null
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                // log exception here
+                return StatusCode(500);
+            }
+        }
+
+        [HttpPut]
+        public async Task<ActionResult<APIEntityResponse<Customer>>>
+         Update([FromBody] Customer Customer)
+        {
+            try
+            {
+                var result = await customersManager.UpdateAsync(Customer);
+                if (result != null)
+                {
+                    return Ok(new APIEntityResponse<Customer>()
+                    {
+                        Success = true,
+                        Data = result
+                    });
+                }
+                else
+                {
+                    return Ok(new APIEntityResponse<Customer>()
+                    {
+                        Success = false,
+                        ErrorMessages = new List<string>()
+               { "Could not find customer after updating it." },
+                        Data = null
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                // log exception here
+                return StatusCode(500);
+            }
+        }
+
+        [HttpDelete("{Id}")]
+        public async Task<ActionResult<bool>> Delete(int Id)
+        {
+            try
+            {
+                return await customersManager.DeleteByIdAsync(Id);
+            }
+            catch (Exception ex)
+            {
+                // log exception here
+                var msg = ex.Message;
+                return StatusCode(500);
+            }
+        }
+
+        [HttpGet("deleteall")]
+        public async Task<ActionResult> DeleteAll()
+        {
+            try
+            {
+                await customersManager.DeleteAllAsync();
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                // log exception here
+                return StatusCode(500);
+            }
+        }
+    }
+}
+```
+
+On the client, just tweak the *CustomerRepository.cs* file to call the Dapper controller:
+
+```c#
+public class CustomerRepoistory : APIRepository<Customer>
+{
+    HttpClient http;
+    
+    // swap out the controller name
+    //static string controllerName = "inmemorycustomers";
+    //static string controllerName = "efcustomers";
+    static string controllerName = "dappercustomers";
+
+    public CustomerRepoistory(HttpClient _http)
+       : base(_http, controllerName, "Id")
+    {
+        http = _http;
+    }
+}
+```
+
+Run the app.
+
+It will look the same, but when you search, unlike the other repositories, the DapperRepository will create a custom SQL statement based on the parameters in the `QueryFilter`
+

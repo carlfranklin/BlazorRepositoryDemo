@@ -1,15 +1,16 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using RepositoryDemo.Server.Data;
 
 
 namespace RepositoryDemo.Server.Controllers
 {
     [Route("[controller]")]
     [ApiController]
-    public class InMemoryCustomersController : ControllerBase
+    public class DapperCustomersController : ControllerBase
     {
-        MemoryRepository<Customer> customersManager;
+        DapperRepository<Customer> customersManager;
 
-        public InMemoryCustomersController(MemoryRepository<Customer> _customersManager)
+        public DapperCustomersController(DapperRepository<Customer> _customersManager)
         {
             customersManager = _customersManager;
         }
@@ -43,7 +44,7 @@ namespace RepositoryDemo.Server.Controllers
                 return Ok(new APIListOfEntityResponse<Customer>()
                 {
                     Success = true,
-                    Data = result
+                    Data = result.ToList()
                 });
             }
             catch (Exception ex)
@@ -91,6 +92,7 @@ namespace RepositoryDemo.Server.Controllers
         {
             try
             {
+                Customer.Id = 0; // Make sure you do this!
                 var result = await customersManager.InsertAsync(Customer);
                 if (result != null)
                 {
@@ -118,10 +120,9 @@ namespace RepositoryDemo.Server.Controllers
             }
         }
 
-
         [HttpPut]
         public async Task<ActionResult<APIEntityResponse<Customer>>>
-            Update([FromBody] Customer Customer)
+         Update([FromBody] Customer Customer)
         {
             try
             {
@@ -166,7 +167,6 @@ namespace RepositoryDemo.Server.Controllers
                 return StatusCode(500);
             }
         }
-
 
         [HttpGet("deleteall")]
         public async Task<ActionResult> DeleteAll()

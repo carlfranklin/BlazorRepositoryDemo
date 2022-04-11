@@ -85,7 +85,7 @@
             //expression.OrderByDescending = Descending;
 
 
-            var list = await CustomerManager.Get(expression);
+            var list = await CustomerManager.GetAsync(expression);
             Customers = list.ToList();
 
         }
@@ -102,7 +102,7 @@
                      select x).FirstOrDefault();
         if (rocky != null)
         {
-            await CustomerManager.Delete(rocky);
+            await CustomerManager.DeleteAsync(rocky);
             await Reload();
         }
     }
@@ -114,7 +114,7 @@
                     select x).FirstOrDefault();
         if (hugh != null)
         {
-            await CustomerManager.Delete(hugh.Id);
+            await CustomerManager.DeleteByIdAsync(hugh.Id);
             await Reload();
         }
     }
@@ -127,7 +127,7 @@
         if (isadora != null)
         {
             isadora.Email = "isadora@isadorajarr.com";
-            await CustomerManager.Update(isadora);
+            await CustomerManager.UpdateAsync(isadora);
             await Reload();
         }
     }
@@ -140,7 +140,7 @@
                      select x).FirstOrDefault();
         if (jenny != null)
         {
-            var jennyDb = await CustomerManager.GetById(jenny.Id);
+            var jennyDb = await CustomerManager.GetByIdAsync(jenny.Id);
             if (jennyDb != null)
             {
                 JennyMessage = $"Retrieved Jenny via Id {jennyDb.Id}";
@@ -157,7 +157,7 @@
     async Task Reload()
     {
         JennyMessage = "";
-        var list = await CustomerManager.GetAll();
+        var list = await CustomerManager.GetAllAsync();
         if (list != null)
         {
             Customers = list.ToList();
@@ -167,32 +167,32 @@
 
     async Task AddCustomers()
     {
-        await CustomerManager.DeleteAll();
+        await CustomerManager.DeleteAllAsync();
 
         Customers.Clear();
 
-        await CustomerManager.Insert(new Customer
+        await CustomerManager.InsertAsync(new Customer
             {
                 Id = 1,
                 Name = "Isadora Jarr",
                 Email = "isadora@jarr.com"
             });
 
-        await CustomerManager.Insert(new Customer
+        await CustomerManager.InsertAsync(new Customer
             {
                 Id = 2,
                 Name = "Rocky Rhodes",
                 Email = "rocky@rhodes.com"
             });
 
-        await CustomerManager.Insert(new Customer
+        await CustomerManager.InsertAsync(new Customer
             {
                 Id = 3,
                 Name = "Jenny Jones",
                 Email = "jenny@jones.com"
             });
 
-        await CustomerManager.Insert(new Customer
+        await CustomerManager.InsertAsync(new Customer
             {
                 Id = 4,
                 Name = "Hugh Jass",

@@ -8,14 +8,14 @@ using System.Reflection;
 /// <typeparam name="TEntity"></typeparam>
 public interface IRepository<TEntity> where TEntity : class
 {
-    Task<bool> Delete(TEntity EntityToDelete);
-    Task<bool> Delete(object Id);
-    Task DeleteAll(); // Be Careful!!!
-    Task<IEnumerable<TEntity>> Get(QueryFilter<TEntity> Filter);
-    Task<IEnumerable<TEntity>> GetAll();
-    Task<TEntity> GetById(object Id);
-    Task<TEntity> Insert(TEntity Entity);
-    Task<TEntity> Update(TEntity EntityToUpdate);
+    Task<bool> DeleteAsync(TEntity EntityToDelete);
+    Task<bool> DeleteByIdAsync(object Id);
+    Task DeleteAllAsync(); // Be Careful!!!
+    Task<IEnumerable<TEntity>> GetAsync(QueryFilter<TEntity> Filter);
+    Task<IEnumerable<TEntity>> GetAllAsync();
+    Task<TEntity> GetByIdAsync(object Id);
+    Task<TEntity> InsertAsync(TEntity Entity);
+    Task<TEntity> UpdateAsync(TEntity EntityToUpdate);
 }
 
 /// <summary>
@@ -52,7 +52,7 @@ public class QueryFilter<TEntity> where TEntity : class
     /// </summary>
     /// <param name="AllItems"></param>
     /// <returns></returns>
-    public async Task<IEnumerable<TEntity>> GetFilteredList(List<TEntity> AllItems)
+    public async Task<IEnumerable<TEntity>> GetFilteredListAsync(List<TEntity> AllItems)
     {
         // Convert to IQueryable
         var query = AllItems.AsQueryable<TEntity>();

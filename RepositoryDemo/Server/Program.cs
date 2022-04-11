@@ -5,6 +5,7 @@ global using System.Data.SqlClient;
 global using Dapper;
 global using Dapper.Contrib.Extensions;
 global using System.Data;
+global using AvnRepository;
 using Microsoft.AspNetCore.ResponseCompression;
 using RepositoryDemo.Server.Data;
 

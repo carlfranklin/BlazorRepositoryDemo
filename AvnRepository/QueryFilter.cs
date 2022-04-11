@@ -2,22 +2,7 @@
 using System.Linq.Expressions;
 using System.Reflection;
 #nullable disable
-/// <summary>
-/// Generic repository interface that uses
-/// </summary>
-/// <typeparam name="TEntity"></typeparam>
-public interface IRepository<TEntity> where TEntity : class
-{
-    Task<bool> DeleteAsync(TEntity EntityToDelete);
-    Task<bool> DeleteByIdAsync(object Id);
-    Task DeleteAllAsync(); // Be Careful!!!
-    Task<IEnumerable<TEntity>> GetAsync(QueryFilter<TEntity> Filter);
-    Task<IEnumerable<TEntity>> GetAllAsync();
-    Task<TEntity> GetByIdAsync(object Id);
-    Task<TEntity> InsertAsync(TEntity Entity);
-    Task<TEntity> UpdateAsync(TEntity EntityToUpdate);
-}
-
+namespace AvnRepository;
 /// <summary>
 /// A serializable filter. An alternative to trying to serialize and deserialize LINQ expressions,
 /// which are very finicky. This class uses standard types. 
@@ -36,12 +21,12 @@ public class QueryFilter<TEntity> where TEntity : class
     /// Defines the property names and values in the WHERE clause
     /// </summary>
     public List<FilterProperty> FilterProperties { get; set; } = new List<FilterProperty>();
-    
+
     /// <summary>
     /// Specify the property to ORDER BY, if any 
     /// </summary>
     public string OrderByPropertyName { get; set; } = "";
-    
+
     /// <summary>
     /// Set to true if you want to order DESCENDING
     /// </summary>
@@ -54,6 +39,8 @@ public class QueryFilter<TEntity> where TEntity : class
     /// <returns></returns>
     public async Task<IEnumerable<TEntity>> GetFilteredListAsync(List<TEntity> AllItems)
     {
+        await Task.Delay(0);
+
         // Convert to IQueryable
         var query = AllItems.AsQueryable<TEntity>();
 
@@ -161,31 +148,4 @@ public class QueryFilter<TEntity> where TEntity : class
         return query.ToList();
     }
 
-}
-
-/// <summary>
-/// Defines a property for the WHERE clause
-/// </summary>
-public class FilterProperty
-{
-    public string Name { get; set; } = "";
-    public string Value { get; set; } = "";
-    public FilterOperator Operator { get; set; }
-    public bool CaseSensitive { get; set; } = false;
-}
-
-/// <summary>
-/// Specify the compare operator
-/// </summary>
-public enum FilterOperator
-{
-    Equals,
-    NotEquals,
-    StartsWith,
-    EndsWith,
-    Contains,
-    LessThan,
-    GreaterThan,
-    LessThanOrEqual,
-    GreaterThanOrEqual
 }

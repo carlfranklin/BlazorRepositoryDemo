@@ -66,15 +66,13 @@
                 }
                 else
                     sql += "* ";
+
                 sql += $"from {entityName} ";
                 if (dictionary.Count > 0)
                 {
                     sql += "where ";
                     int count = 0;
-                    if (Filter.FilterProperties[count].CaseSensitive)
-                    {
-                        sql += "BINARY ";
-                    }
+
 
                     foreach (var key in dictionary.Keys)
                     {
@@ -109,6 +107,11 @@
                                 break;
                         }
 
+                        if (Filter.FilterProperties[count].CaseSensitive)
+                        {
+                            sql += "COLLATE Latin1_General_CS_AS ";
+                        }
+
                         if (key != dictionary.Keys.Last())
                         {
                             sql += "and ";
@@ -118,10 +121,10 @@
                 }
                 if (Filter.OrderByPropertyName != "")
                 {
-                    sql += $"order by {Filter.OrderByPropertyName} ";
+                    sql += $"order by {Filter.OrderByPropertyName}";
                     if (Filter.OrderByDescending)
                     {
-                        sql += "desc";
+                        sql += " desc";
                     }
                 }
 

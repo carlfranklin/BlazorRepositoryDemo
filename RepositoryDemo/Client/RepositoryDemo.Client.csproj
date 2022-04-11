@@ -13,6 +13,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\..\..\..\Repos\AvnRepository\AvnRepository\AvnRepository.csproj" />
     <ProjectReference Include="..\Shared\RepositoryDemo.Shared.csproj" />
   </ItemGroup>
 

@@ -9,8 +9,6 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "RepositoryDemo.Client", "Re
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "RepositoryDemo.Shared", "RepositoryDemo\Shared\RepositoryDemo.Shared.csproj", "{877724B1-0D75-48CE-939E-7B3E18BD417B}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AvnRepository", "..\..\..\Repos\AvnRepository\AvnRepository\AvnRepository.csproj", "{604976EE-E653-4038-AE6F-201168B16C15}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -29,10 +27,6 @@ Global
 		{877724B1-0D75-48CE-939E-7B3E18BD417B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{877724B1-0D75-48CE-939E-7B3E18BD417B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{877724B1-0D75-48CE-939E-7B3E18BD417B}.Release|Any CPU.Build.0 = Release|Any CPU
-		{604976EE-E653-4038-AE6F-201168B16C15}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{604976EE-E653-4038-AE6F-201168B16C15}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{604976EE-E653-4038-AE6F-201168B16C15}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{604976EE-E653-4038-AE6F-201168B16C15}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -6,6 +6,7 @@
 	</PropertyGroup>
 
 	<ItemGroup>
+		<PackageReference Include="AvnRepository" Version="1.0.0" />
 		<PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="6.0.3" />
 		<PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="6.0.3" />
 		<PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="6.0.3">
@@ -20,7 +21,6 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<ProjectReference Include="..\..\..\..\..\Repos\AvnRepository\AvnRepository\AvnRepository.csproj" />
 		<ProjectReference Include="..\Client\RepositoryDemo.Client.csproj" />
 		<ProjectReference Include="..\Shared\RepositoryDemo.Shared.csproj" />
 	</ItemGroup>

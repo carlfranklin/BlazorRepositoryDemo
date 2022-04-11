@@ -22,6 +22,12 @@ Browse for "Newtonsoft.Json" and install in both the Client and Server projects:
 
 ![image-20220322171923311](images/image-20220322171923311.png)
 
+### Install AvnRepository
+
+Get the NuGet package at [https://www.nuget.org/packages/AvnRepository/](https://www.nuget.org/packages/AvnRepository/) and install it in both the Client and Server projects.
+
+`AvnRepository` contains all the plumbing code for building repositories.
+
 #### Add Models
 
 To the *Shared* app, add a *Models* folder and add the following files to it:
@@ -38,6 +44,8 @@ public class Customer
 ```
 
 `Customer` will serve as our primary demo model. 
+
+### Examine the classes in AvnRepository
 
 *APIEntityResponse.cs*
 
@@ -85,7 +93,15 @@ public interface IRepository<TEntity> where TEntity : class
     Task<TEntity> InsertAsync(TEntity Entity);
     Task<TEntity> UpdateAsync(TEntity EntityToUpdate);
 }
+```
 
+The `IRepository<TEntity>` interface  will be used on the server as well as the client to ensure compatibility accessing data, no matter where the code resides.
+
+This class file also includes code to describe custom queries that can easily be sent and received as json.
+
+*QueryFilter.cs*:
+
+```c#
 /// <summary>
 /// A serializable filter. An alternative to trying to serialize and deserialize LINQ expressions,
 /// which are very finicky. This class uses standard types. 
@@ -230,7 +246,19 @@ public class QueryFilter<TEntity> where TEntity : class
     }
 
 }
+```
 
+The `QueryFilter<TEntity>` can be used on the client as well as the server to define the same level of filter as using LINQ, except that it easily travels across the wire.
+
+- `IncludedPropertyNames` defines the columns to return, ala the SELECT clause
+- `FilterProperties` defines the properties to compare, ala the WHERE clause
+- `OrderByPropertyName` defines the sort column, ala the ORDER BY clause
+- `OrderByDescending` defines the direction of the sort, ala DESC
+- The `GetFilteredList` method applies the current filter settings given a list of all items. While it's true that all of the items need to be loaded, what you give up in memory efficiency you gain in convenience. This method currently handles properties of type `string`, `int32` and `DateTime`.
+
+*FilterProperty.cs*:
+
+```c#
 /// <summary>
 /// Defines a property for the WHERE clause
 /// </summary>
@@ -241,7 +269,18 @@ public class FilterProperty
     public FilterOperator Operator { get; set; }
     public bool CaseSensitive { get; set; } = false;
 }
+```
 
+The `FilterProperty` class defines columns to compare:
+
+- `Name` is the Name of the property
+- `Value` is a string representation of the value of the property
+- `CaseSensitive` is a flag to determine whether case-sensitivity should be applied
+- `FilterOerator` defines how to compare the column values (StartsWith, etc.)
+
+*FilterOperator.cs:*
+
+```c#
 /// <summary>
 /// Specify the compare operator
 /// </summary>
@@ -259,25 +298,6 @@ public enum FilterOperator
 }
 ```
 
-The `IRepository<TEntity>` interface  will be used on the server as well as the client to ensure compatibility accessing data, no matter where the code resides.
-
-This class file also includes code to describe custom queries that can easily be sent and received as json.
-
-The `QueryFilter<TEntity>` can be used on the client as well as the server to define the same level of filter as using LINQ, except that it easily travels across the wire.
-
-- `IncludedPropertyNames` defines the columns to return, ala the SELECT clause
-- `FilterProperties` defines the properties to compare, ala the WHERE clause
-- `OrderByPropertyName` defines the sort column, ala the ORDER BY clause
-- `OrderByDescending` defines the direction of the sort, ala DESC
-- The `GetFilteredList` method applies the current filter settings given a list of all items. While it's true that all of the items need to be loaded, what you give up in memory efficiency you gain in convenience. This method currently handles properties of type `string`, `int32` and `DateTime`.
-
-The `FilterProperty` class defines columns to compare:
-
-- `Name` is the Name of the property
-- `Value` is a string representation of the value of the property
-- `CaseSensitive` is a flag to determine whether case-sensitivity should be applied
-- `FilterOerator` defines how to compare the column values (StartsWith, etc.)
-
 #### Add Global Usings to Server
 
 In the server project, add the following statements to the very top of *Program.cs*:
@@ -285,6 +305,7 @@ In the server project, add the following statements to the very top of *Program.
 ```c#
 global using System.Linq.Expressions;
 global using System.Reflection;
+global using AvnRepository;
 ```
 
 ## Implement an In-Memory Repository
@@ -451,8 +472,6 @@ To the server project's *Controllers* folder, add the following:
 
 ```c#
 using Microsoft.AspNetCore.Mvc;
-
-
 namespace RepositoryDemo.Server.Controllers
 {
     [Route("[controller]")]
@@ -657,6 +676,7 @@ global using System.Net.Http.Json;
 global using Newtonsoft.Json;
 global using System.Net;
 global using System.Linq.Expressions;
+global using AvnRepository;
 ```
 
 #### Add an APIRepository class to the Client
@@ -902,6 +922,7 @@ builder.Services.AddScoped<CustomerRepoistory>();
 
 ```c#
 @using RepositoryDemo.Shared
+@using AvnRepository
 ```
 
 Adding these ensures we can access classes in these namespaces from .razor components.

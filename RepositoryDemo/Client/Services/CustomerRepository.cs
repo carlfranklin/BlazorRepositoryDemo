@@ -1,4 +1,4 @@
-﻿public class CustomerRepoistory : APIRepository<Customer>
+﻿public class CustomerRepository : APIRepository<Customer>
 {
     HttpClient http;
     
@@ -7,7 +7,7 @@
     //static string controllerName = "efcustomers";
     //static string controllerName = "dappercustomers";
 
-    public CustomerRepoistory(HttpClient _http)
+    public CustomerRepository(HttpClient _http)
        : base(_http, controllerName, "Id")
     {
         http = _http;

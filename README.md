@@ -890,7 +890,7 @@ To the client project's *Services* folder, add the following:
 *CustomerRepository.cs*
 
 ```c#
-public class CustomerRepoistory : APIRepository<Customer>
+public class CustomerRepository : APIRepository<Customer>
 {
     HttpClient http;
     
@@ -898,7 +898,7 @@ public class CustomerRepoistory : APIRepository<Customer>
     static string controllerName = "inmemorycustomers";
     //static string controllerName = "efcustomers";
 
-    public CustomerRepoistory(HttpClient _http)
+    public CustomerRepository(HttpClient _http)
        : base(_http, controllerName, "Id")
     {
         http = _http;
@@ -915,7 +915,7 @@ This is where you could implement additional methods in lieu of using the filter
 To the client project's *Program.cs* file, add the following to `Main(string[] args)`:
 
 ```c#
-builder.Services.AddScoped<CustomerRepoistory>();
+builder.Services.AddScoped<CustomerRepository>();
 ```
 
 #### Add using statement to *_Imports.razor*
@@ -933,7 +933,7 @@ Change *\Pages\Index.razor* to the following:
 
 ```c#
 @page "/"
-@inject CustomerRepoistory CustomerManager
+@inject CustomerRepository CustomerManager
 
 <h1>Repository Demo</h1>
 
@@ -1535,7 +1535,7 @@ The `RepositoryDemoContext` and `EFRepository` need to be defined as transient s
 Change *\Services\CustomerRepository.cs* to point to the EF Controller:
 
 ```c#
-public class CustomerRepoistory : APIRepository<Customer>
+public class CustomerRepository : APIRepository<Customer>
 {
     HttpClient http;
     
@@ -1543,7 +1543,7 @@ public class CustomerRepoistory : APIRepository<Customer>
     //static string controllerName = "inmemorycustomers";
     static string controllerName = "efcustomers";
 
-    public CustomerRepoistory(HttpClient _http)
+    public CustomerRepository(HttpClient _http)
        : base(_http, controllerName, "Id")
     {
         http = _http;
@@ -2146,7 +2146,7 @@ namespace RepositoryDemo.Server.Controllers
 On the client, just tweak the *CustomerRepository.cs* file to call the Dapper controller:
 
 ```c#
-public class CustomerRepoistory : APIRepository<Customer>
+public class CustomerRepository : APIRepository<Customer>
 {
     HttpClient http;
     
@@ -2155,7 +2155,7 @@ public class CustomerRepoistory : APIRepository<Customer>
     //static string controllerName = "efcustomers";
     static string controllerName = "dappercustomers";
 
-    public CustomerRepoistory(HttpClient _http)
+    public CustomerRepository(HttpClient _http)
        : base(_http, controllerName, "Id")
     {
         http = _http;

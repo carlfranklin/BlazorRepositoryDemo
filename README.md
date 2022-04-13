@@ -102,6 +102,11 @@ This class file also includes code to describe custom queries that can easily be
 *QueryFilter.cs*:
 
 ```c#
+using Microsoft.EntityFrameworkCore;
+using System.Linq.Expressions;
+using System.Reflection;
+#nullable disable
+namespace AvnRepository;
 /// <summary>
 /// A serializable filter. An alternative to trying to serialize and deserialize LINQ expressions,
 /// which are very finicky. This class uses standard types. 
@@ -120,12 +125,12 @@ public class QueryFilter<TEntity> where TEntity : class
     /// Defines the property names and values in the WHERE clause
     /// </summary>
     public List<FilterProperty> FilterProperties { get; set; } = new List<FilterProperty>();
-    
+
     /// <summary>
     /// Specify the property to ORDER BY, if any 
     /// </summary>
     public string OrderByPropertyName { get; set; } = "";
-    
+
     /// <summary>
     /// Set to true if you want to order DESCENDING
     /// </summary>
@@ -136,7 +141,7 @@ public class QueryFilter<TEntity> where TEntity : class
     /// </summary>
     /// <param name="AllItems"></param>
     /// <returns></returns>
-    public async Task<IEnumerable<TEntity>> GetFilteredListAsync(List<TEntity> AllItems)
+    public IEnumerable<TEntity> GetFilteredList(IEnumerable<TEntity> AllItems)
     {
         // Convert to IQueryable
         var query = AllItems.AsQueryable<TEntity>();
@@ -153,34 +158,56 @@ public class QueryFilter<TEntity> where TEntity : class
             // string
             if (prop.PropertyType == typeof(string))
             {
+                string value = filterProperty.Value.ToString();
+                if (filterProperty.CaseSensitive == false)
+                    value = value.ToLower();
+
                 if (filterProperty.Operator == FilterOperator.Equals)
                     if (filterProperty.CaseSensitive == false)
-                        expression = s => s.GetType().GetProperty(filterProperty.Name).GetValue(s).ToString().ToLower() == filterProperty.Value.ToString().ToLower();
+                        expression = s => s.GetType().GetProperty(filterProperty.Name).GetValue(s).ToString().ToLower() == value;
                     else
-                        expression = s => s.GetType().GetProperty(filterProperty.Name).GetValue(s).ToString() == filterProperty.Value.ToString();
+                        expression = s => s.GetType().GetProperty(filterProperty.Name).GetValue(s).ToString() == value;
                 else if (filterProperty.Operator == FilterOperator.NotEquals)
                     if (filterProperty.CaseSensitive == false)
-                        expression = s => s.GetType().GetProperty(filterProperty.Name).GetValue(s).ToString().ToLower() != filterProperty.Value.ToString().ToLower();
+                        expression = s => s.GetType().GetProperty(filterProperty.Name).GetValue(s).ToString().ToLower() != value;
                     else
-                        expression = s => s.GetType().GetProperty(filterProperty.Name).GetValue(s).ToString() != filterProperty.Value.ToString();
+                        expression = s => s.GetType().GetProperty(filterProperty.Name).GetValue(s).ToString() != value;
                 else if (filterProperty.Operator == FilterOperator.StartsWith)
                     if (filterProperty.CaseSensitive == false)
-                        expression = s => s.GetType().GetProperty(filterProperty.Name).GetValue(s).ToString().ToLower().StartsWith(filterProperty.Value.ToString().ToLower());
+                        expression = s => s.GetType().GetProperty(filterProperty.Name).GetValue(s).ToString().ToLower().StartsWith(value);
                     else
-                        expression = s => s.GetType().GetProperty(filterProperty.Name).GetValue(s).ToString().StartsWith(filterProperty.Value.ToString());
+                        expression = s => s.GetType().GetProperty(filterProperty.Name).GetValue(s).ToString().StartsWith(value);
                 else if (filterProperty.Operator == FilterOperator.EndsWith)
                     if (filterProperty.CaseSensitive == false)
-                        expression = s => s.GetType().GetProperty(filterProperty.Name).GetValue(s).ToString().ToLower().EndsWith(filterProperty.Value.ToString().ToLower());
+                        expression = s => s.GetType().GetProperty(filterProperty.Name).GetValue(s).ToString().ToLower().EndsWith(value);
                     else
-                        expression = s => s.GetType().GetProperty(filterProperty.Name).GetValue(s).ToString().EndsWith(filterProperty.Value.ToString());
+                        expression = s => s.GetType().GetProperty(filterProperty.Name).GetValue(s).ToString().EndsWith(value);
                 else if (filterProperty.Operator == FilterOperator.Contains)
                     if (filterProperty.CaseSensitive == false)
-                        expression = s => s.GetType().GetProperty(filterProperty.Name).GetValue(s).ToString().ToLower().Contains(filterProperty.Value.ToString().ToLower());
+                        expression = s => s.GetType().GetProperty(filterProperty.Name).GetValue(s).ToString().ToLower().Contains(value);
                     else
-                        expression = s => s.GetType().GetProperty(filterProperty.Name).GetValue(s).ToString().Contains(filterProperty.Value.ToString());
+                        expression = s => s.GetType().GetProperty(filterProperty.Name).GetValue(s).ToString().Contains(value);
             }
-            // int
-            if (prop.PropertyType == typeof(int))
+            // Int16
+            else if (prop.PropertyType == typeof(Int16))
+            {
+                int value = Convert.ToInt16(filterProperty.Value);
+
+                if (filterProperty.Operator == FilterOperator.Equals)
+                    expression = s => Convert.ToInt16(s.GetType().GetProperty(filterProperty.Name).GetValue(s)) == value;
+                else if (filterProperty.Operator == FilterOperator.NotEquals)
+                    expression = s => Convert.ToInt16(s.GetType().GetProperty(filterProperty.Name).GetValue(s)) != value;
+                else if (filterProperty.Operator == FilterOperator.LessThan)
+                    expression = s => Convert.ToInt16(s.GetType().GetProperty(filterProperty.Name).GetValue(s)) < value;
+                else if (filterProperty.Operator == FilterOperator.GreaterThan)
+                    expression = s => Convert.ToInt16(s.GetType().GetProperty(filterProperty.Name).GetValue(s)) > value;
+                else if (filterProperty.Operator == FilterOperator.LessThanOrEqual)
+                    expression = s => Convert.ToInt16(s.GetType().GetProperty(filterProperty.Name).GetValue(s)) <= value;
+                else if (filterProperty.Operator == FilterOperator.GreaterThanOrEqual)
+                    expression = s => Convert.ToInt16(s.GetType().GetProperty(filterProperty.Name).GetValue(s)) >= value;
+            }
+            // Int32
+            else if (prop.PropertyType == typeof(Int32))
             {
                 int value = Convert.ToInt32(filterProperty.Value);
 
@@ -197,8 +224,80 @@ public class QueryFilter<TEntity> where TEntity : class
                 else if (filterProperty.Operator == FilterOperator.GreaterThanOrEqual)
                     expression = s => Convert.ToInt32(s.GetType().GetProperty(filterProperty.Name).GetValue(s)) >= value;
             }
-            // datetime
-            if (prop.PropertyType == typeof(DateTime))
+            // Int64
+            else if (prop.PropertyType == typeof(Int64))
+            {
+                Int64 value = Convert.ToInt64(filterProperty.Value);
+
+                if (filterProperty.Operator == FilterOperator.Equals)
+                    expression = s => Convert.ToInt64(s.GetType().GetProperty(filterProperty.Name).GetValue(s).ToString()) == value;
+                else if (filterProperty.Operator == FilterOperator.NotEquals)
+                    expression = s => Convert.ToInt64(s.GetType().GetProperty(filterProperty.Name).GetValue(s).ToString()) != value;
+                else if (filterProperty.Operator == FilterOperator.LessThan)
+                    expression = s => Convert.ToInt64(s.GetType().GetProperty(filterProperty.Name).GetValue(s).ToString()) < value;
+                else if (filterProperty.Operator == FilterOperator.GreaterThan)
+                    expression = s => Convert.ToInt64(s.GetType().GetProperty(filterProperty.Name).GetValue(s).ToString()) > value;
+                else if (filterProperty.Operator == FilterOperator.LessThanOrEqual)
+                    expression = s => Convert.ToInt64(s.GetType().GetProperty(filterProperty.Name).GetValue(s).ToString()) <= value;
+                else if (filterProperty.Operator == FilterOperator.GreaterThanOrEqual)
+                    expression = s => Convert.ToInt64(s.GetType().GetProperty(filterProperty.Name).GetValue(s).ToString()) >= value;
+            }
+            // UInt16
+            else if (prop.PropertyType == typeof(UInt16))
+            {
+                UInt16 value = Convert.ToUInt16(filterProperty.Value);
+
+                if (filterProperty.Operator == FilterOperator.Equals)
+                    expression = s => Convert.ToUInt16(s.GetType().GetProperty(filterProperty.Name).GetValue(s)) == value;
+                else if (filterProperty.Operator == FilterOperator.NotEquals)
+                    expression = s => Convert.ToUInt16(s.GetType().GetProperty(filterProperty.Name).GetValue(s)) != value;
+                else if (filterProperty.Operator == FilterOperator.LessThan)
+                    expression = s => Convert.ToUInt16(s.GetType().GetProperty(filterProperty.Name).GetValue(s)) < value;
+                else if (filterProperty.Operator == FilterOperator.GreaterThan)
+                    expression = s => Convert.ToUInt16(s.GetType().GetProperty(filterProperty.Name).GetValue(s)) > value;
+                else if (filterProperty.Operator == FilterOperator.LessThanOrEqual)
+                    expression = s => Convert.ToUInt16(s.GetType().GetProperty(filterProperty.Name).GetValue(s)) <= value;
+                else if (filterProperty.Operator == FilterOperator.GreaterThanOrEqual)
+                    expression = s => Convert.ToUInt16(s.GetType().GetProperty(filterProperty.Name).GetValue(s)) >= value;
+            }
+            // UInt32
+            else if (prop.PropertyType == typeof(UInt32))
+            {
+                UInt32 value = Convert.ToUInt32(filterProperty.Value);
+
+                if (filterProperty.Operator == FilterOperator.Equals)
+                    expression = s => Convert.ToUInt32(s.GetType().GetProperty(filterProperty.Name).GetValue(s)) == value;
+                else if (filterProperty.Operator == FilterOperator.NotEquals)
+                    expression = s => Convert.ToUInt32(s.GetType().GetProperty(filterProperty.Name).GetValue(s)) != value;
+                else if (filterProperty.Operator == FilterOperator.LessThan)
+                    expression = s => Convert.ToUInt32(s.GetType().GetProperty(filterProperty.Name).GetValue(s)) < value;
+                else if (filterProperty.Operator == FilterOperator.GreaterThan)
+                    expression = s => Convert.ToUInt32(s.GetType().GetProperty(filterProperty.Name).GetValue(s)) > value;
+                else if (filterProperty.Operator == FilterOperator.LessThanOrEqual)
+                    expression = s => Convert.ToUInt32(s.GetType().GetProperty(filterProperty.Name).GetValue(s)) <= value;
+                else if (filterProperty.Operator == FilterOperator.GreaterThanOrEqual)
+                    expression = s => Convert.ToUInt32(s.GetType().GetProperty(filterProperty.Name).GetValue(s)) >= value;
+            }
+            // UInt64
+            else if (prop.PropertyType == typeof(UInt64))
+            {
+                UInt64 value = Convert.ToUInt64(filterProperty.Value);
+
+                if (filterProperty.Operator == FilterOperator.Equals)
+                    expression = s => Convert.ToUInt64(s.GetType().GetProperty(filterProperty.Name).GetValue(s).ToString()) == value;
+                else if (filterProperty.Operator == FilterOperator.NotEquals)
+                    expression = s => Convert.ToUInt64(s.GetType().GetProperty(filterProperty.Name).GetValue(s).ToString()) != value;
+                else if (filterProperty.Operator == FilterOperator.LessThan)
+                    expression = s => Convert.ToUInt64(s.GetType().GetProperty(filterProperty.Name).GetValue(s).ToString()) < value;
+                else if (filterProperty.Operator == FilterOperator.GreaterThan)
+                    expression = s => Convert.ToUInt64(s.GetType().GetProperty(filterProperty.Name).GetValue(s).ToString()) > value;
+                else if (filterProperty.Operator == FilterOperator.LessThanOrEqual)
+                    expression = s => Convert.ToUInt64(s.GetType().GetProperty(filterProperty.Name).GetValue(s).ToString()) <= value;
+                else if (filterProperty.Operator == FilterOperator.GreaterThanOrEqual)
+                    expression = s => Convert.ToUInt64(s.GetType().GetProperty(filterProperty.Name).GetValue(s).ToString()) >= value;
+            }
+            // DateTime
+            else if (prop.PropertyType == typeof(DateTime))
             {
                 DateTime value = DateTime.Parse(filterProperty.Value);
 
@@ -214,6 +313,106 @@ public class QueryFilter<TEntity> where TEntity : class
                     expression = s => DateTime.Parse(s.GetType().GetProperty(filterProperty.Name).GetValue(s).ToString()) <= value;
                 else if (filterProperty.Operator == FilterOperator.GreaterThanOrEqual)
                     expression = s => DateTime.Parse(s.GetType().GetProperty(filterProperty.Name).GetValue(s).ToString()) >= value;
+            }
+            // decimal
+            else if (prop.PropertyType == typeof(decimal))
+            {
+                decimal value = Convert.ToDecimal(filterProperty.Value);
+
+                if (filterProperty.Operator == FilterOperator.Equals)
+                    expression = s => Convert.ToDecimal(s.GetType().GetProperty(filterProperty.Name).GetValue(s).ToString()) == value;
+                else if (filterProperty.Operator == FilterOperator.NotEquals)
+                    expression = s => Convert.ToDecimal(s.GetType().GetProperty(filterProperty.Name).GetValue(s).ToString()) != value;
+                else if (filterProperty.Operator == FilterOperator.LessThan)
+                    expression = s => Convert.ToDecimal(s.GetType().GetProperty(filterProperty.Name).GetValue(s).ToString()) < value;
+                else if (filterProperty.Operator == FilterOperator.GreaterThan)
+                    expression = s => Convert.ToDecimal(s.GetType().GetProperty(filterProperty.Name).GetValue(s).ToString()) > value;
+                else if (filterProperty.Operator == FilterOperator.LessThanOrEqual)
+                    expression = s => Convert.ToDecimal(s.GetType().GetProperty(filterProperty.Name).GetValue(s).ToString()) <= value;
+                else if (filterProperty.Operator == FilterOperator.GreaterThanOrEqual)
+                    expression = s => Convert.ToDecimal(s.GetType().GetProperty(filterProperty.Name).GetValue(s).ToString()) >= value;
+            }
+            // Single
+            else if (prop.PropertyType == typeof(Single))
+            {
+                Single value = Convert.ToSingle(filterProperty.Value);
+
+                if (filterProperty.Operator == FilterOperator.Equals)
+                    expression = s => Convert.ToSingle(s.GetType().GetProperty(filterProperty.Name).GetValue(s).ToString()) == value;
+                else if (filterProperty.Operator == FilterOperator.NotEquals)
+                    expression = s => Convert.ToSingle(s.GetType().GetProperty(filterProperty.Name).GetValue(s).ToString()) != value;
+                else if (filterProperty.Operator == FilterOperator.LessThan)
+                    expression = s => Convert.ToSingle(s.GetType().GetProperty(filterProperty.Name).GetValue(s).ToString()) < value;
+                else if (filterProperty.Operator == FilterOperator.GreaterThan)
+                    expression = s => Convert.ToSingle(s.GetType().GetProperty(filterProperty.Name).GetValue(s).ToString()) > value;
+                else if (filterProperty.Operator == FilterOperator.LessThanOrEqual)
+                    expression = s => Convert.ToSingle(s.GetType().GetProperty(filterProperty.Name).GetValue(s).ToString()) <= value;
+                else if (filterProperty.Operator == FilterOperator.GreaterThanOrEqual)
+                    expression = s => Convert.ToSingle(s.GetType().GetProperty(filterProperty.Name).GetValue(s).ToString()) >= value;
+            }
+            // Double
+            else if (prop.PropertyType == typeof(Single))
+            {
+                Double value = Convert.ToDouble(filterProperty.Value);
+
+                if (filterProperty.Operator == FilterOperator.Equals)
+                    expression = s => Convert.ToDouble(s.GetType().GetProperty(filterProperty.Name).GetValue(s).ToString()) == value;
+                else if (filterProperty.Operator == FilterOperator.NotEquals)
+                    expression = s => Convert.ToDouble(s.GetType().GetProperty(filterProperty.Name).GetValue(s).ToString()) != value;
+                else if (filterProperty.Operator == FilterOperator.LessThan)
+                    expression = s => Convert.ToDouble(s.GetType().GetProperty(filterProperty.Name).GetValue(s).ToString()) < value;
+                else if (filterProperty.Operator == FilterOperator.GreaterThan)
+                    expression = s => Convert.ToDouble(s.GetType().GetProperty(filterProperty.Name).GetValue(s).ToString()) > value;
+                else if (filterProperty.Operator == FilterOperator.LessThanOrEqual)
+                    expression = s => Convert.ToDouble(s.GetType().GetProperty(filterProperty.Name).GetValue(s).ToString()) <= value;
+                else if (filterProperty.Operator == FilterOperator.GreaterThanOrEqual)
+                    expression = s => Convert.ToDouble(s.GetType().GetProperty(filterProperty.Name).GetValue(s).ToString()) >= value;
+            }
+            // Boolean
+            else if (prop.PropertyType == typeof(bool))
+            {
+                bool value = Convert.ToBoolean(filterProperty.Value);
+
+                if (filterProperty.Operator == FilterOperator.Equals)
+                    expression = s => Convert.ToBoolean(s.GetType().GetProperty(filterProperty.Name).GetValue(s).ToString()) == value;
+                else if (filterProperty.Operator == FilterOperator.NotEquals)
+                    expression = s => Convert.ToBoolean(s.GetType().GetProperty(filterProperty.Name).GetValue(s).ToString()) != value;
+            }
+            // Byte
+            else if (prop.PropertyType == typeof(Byte))
+            {
+                Byte value = Convert.ToByte(filterProperty.Value);
+
+                if (filterProperty.Operator == FilterOperator.Equals)
+                    expression = s => Convert.ToByte(s.GetType().GetProperty(filterProperty.Name).GetValue(s).ToString()) == value;
+                else if (filterProperty.Operator == FilterOperator.NotEquals)
+                    expression = s => Convert.ToByte(s.GetType().GetProperty(filterProperty.Name).GetValue(s).ToString()) != value;
+                else if (filterProperty.Operator == FilterOperator.LessThan)
+                    expression = s => Convert.ToByte(s.GetType().GetProperty(filterProperty.Name).GetValue(s).ToString()) < value;
+                else if (filterProperty.Operator == FilterOperator.GreaterThan)
+                    expression = s => Convert.ToByte(s.GetType().GetProperty(filterProperty.Name).GetValue(s).ToString()) > value;
+                else if (filterProperty.Operator == FilterOperator.LessThanOrEqual)
+                    expression = s => Convert.ToByte(s.GetType().GetProperty(filterProperty.Name).GetValue(s).ToString()) <= value;
+                else if (filterProperty.Operator == FilterOperator.GreaterThanOrEqual)
+                    expression = s => Convert.ToByte(s.GetType().GetProperty(filterProperty.Name).GetValue(s).ToString()) >= value;
+            }
+            // Char
+            else if (prop.PropertyType == typeof(Char))
+            {
+                Char value = Convert.ToChar(filterProperty.Value);
+
+                if (filterProperty.Operator == FilterOperator.Equals)
+                    expression = s => Convert.ToChar(s.GetType().GetProperty(filterProperty.Name).GetValue(s).ToString()) == value;
+                else if (filterProperty.Operator == FilterOperator.NotEquals)
+                    expression = s => Convert.ToChar(s.GetType().GetProperty(filterProperty.Name).GetValue(s).ToString()) != value;
+                else if (filterProperty.Operator == FilterOperator.LessThan)
+                    expression = s => Convert.ToChar(s.GetType().GetProperty(filterProperty.Name).GetValue(s).ToString()) < value;
+                else if (filterProperty.Operator == FilterOperator.GreaterThan)
+                    expression = s => Convert.ToChar(s.GetType().GetProperty(filterProperty.Name).GetValue(s).ToString()) > value;
+                else if (filterProperty.Operator == FilterOperator.LessThanOrEqual)
+                    expression = s => Convert.ToChar(s.GetType().GetProperty(filterProperty.Name).GetValue(s).ToString()) <= value;
+                else if (filterProperty.Operator == FilterOperator.GreaterThanOrEqual)
+                    expression = s => Convert.ToChar(s.GetType().GetProperty(filterProperty.Name).GetValue(s).ToString()) >= value;
             }
             // Add expression creation code for other data types here.
 
@@ -240,11 +439,9 @@ public class QueryFilter<TEntity> where TEntity : class
                     query = query.Where(expression).OrderBy(x => prop.GetValue(x, null));
             }
         }
-
         // execute and return the list
         return query.ToList();
     }
-
 }
 ```
 
@@ -329,20 +526,18 @@ public class MemoryRepository<TEntity> : IRepository<TEntity> where TEntity : cl
         IdProperty = typeof(TEntity).GetProperty(idPropertyName);
     }
 
-    public async Task<IEnumerable<TEntity>> GetAsync(QueryFilter<TEntity> JsonExpression)
+    public async Task<IEnumerable<TEntity>> GetAsync(QueryFilter<TEntity> Filter)
     {
-        
         var allitems = (await GetAllAsync()).ToList();
-        return await JsonExpression.GetFilteredListAsync(allitems);
+        return await Task.FromResult(Filter.GetFilteredList(allitems));
     }
     public async Task<IEnumerable<TEntity>> GetAllAsync()
     {
-        await Task.Delay(0);
-        return Data;
+        return await Task.FromResult(Data); 
     }
+
     public async Task<TEntity> GetByIdAsync(object Id)
     {
-        await Task.Delay(0);
         if (IdProperty == null) return default(TEntity);
         TEntity entity = null;
         if (IdProperty.PropertyType.IsValueType)
@@ -357,30 +552,32 @@ public class MemoryRepository<TEntity> : IRepository<TEntity> where TEntity : cl
                       where IdProperty.GetValue(x) == Id
                       select x).FirstOrDefault();
         }
-        return entity;
+        return await Task.FromResult(entity);
     }
 
     public async Task<TEntity> InsertAsync(TEntity Entity)
     {
-        await Task.Delay(0);
-        if (Entity == null) return default(TEntity);
+        if (Entity == null) 
+            return await Task.FromResult(default(TEntity));
+        
         try
         {
             lock (Data)
             {
                 Data.Add(Entity);
             }
-            return Entity;
+            return await Task.FromResult(Entity);
         }
         catch { }
-        return default(TEntity);
+        return await Task.FromResult(default(TEntity));
     }
 
     public async Task<TEntity> UpdateAsync(TEntity EntityToUpdate)
     {
-        await Task.Delay(0);
-        if (EntityToUpdate == null) return default(TEntity);
-        if (IdProperty == null) return default(TEntity);
+        if (EntityToUpdate == null)
+            return await Task.FromResult(default(TEntity));
+        if (IdProperty == null)
+            return await Task.FromResult(default(TEntity));
         try
         {
             var id = IdProperty.GetValue(EntityToUpdate);
@@ -392,20 +589,20 @@ public class MemoryRepository<TEntity> : IRepository<TEntity> where TEntity : cl
                     var index = Data.IndexOf(entity);
                     Data[index] = EntityToUpdate;
                 }
-                return EntityToUpdate;
+                return await Task.FromResult(EntityToUpdate);
             }
             else
-                return default(TEntity);
+                return await Task.FromResult(default(TEntity));
         }
         catch { }
-        return default(TEntity);
+        return await Task.FromResult(default(TEntity));
     }
 
     public async Task<bool> DeleteAsync(TEntity EntityToDelete)
     {
-        if (EntityToDelete == null) return false;
+        if (EntityToDelete == null)
+            return await Task.FromResult(false);
 
-        await Task.Delay(0);
         try
         {
             if (Data.Contains(EntityToDelete))
@@ -414,11 +611,11 @@ public class MemoryRepository<TEntity> : IRepository<TEntity> where TEntity : cl
                 {
                     Data.Remove(EntityToDelete);
                 }
-                return true;
+                return await Task.FromResult(true);
             }
         }
         catch { }
-        return false;
+        return await Task.FromResult(false);
     }
 
     public async Task<bool> DeleteByIdAsync(object Id)
@@ -1248,8 +1445,7 @@ public class EFRepository<TEntity, TDataContext> : IRepository<TEntity>
     }
     public async Task<IEnumerable<TEntity>> GetAllAsync()
     {
-        await Task.Delay(0);
-        return dbSet;
+        return await Task.FromResult(dbSet);
     }
 
     public async Task<TEntity> GetByIdAsync(object Id)
@@ -1260,7 +1456,7 @@ public class EFRepository<TEntity, TDataContext> : IRepository<TEntity>
     public async Task<IEnumerable<TEntity>> GetAsync(QueryFilter<TEntity> Filter)
     {
         var allitems = (await GetAllAsync()).ToList();
-        return await Filter.GetFilteredListAsync(allitems);
+        return await Task.FromResult(Filter.GetFilteredList(allitems));
     }
 
     public async Task<TEntity> InsertAsync(TEntity entity)
@@ -1821,12 +2017,11 @@ public class DapperRepository<TEntity> : IRepository<TEntity> where TEntity : cl
 
     public async Task<TEntity> GetByIdAsync(object Id)
     {
-        await Task.Delay(0);
         using (IDbConnection db = new SqlConnection(_sqlConnectionString))
         {
             db.Open();
             var item = db.Get<TEntity>(Id);
-            return item;
+            return await Task.FromResult(item);
         }
     }
 
@@ -1971,8 +2166,6 @@ To the Server project's *Controllers* folder, add *DapperCustomersController.cs*
 ```c#
 using Microsoft.AspNetCore.Mvc;
 using RepositoryDemo.Server.Data;
-
-
 namespace RepositoryDemo.Server.Controllers
 {
     [Route("[controller]")]

@@ -13,8 +13,7 @@
     }
     public async Task<IEnumerable<TEntity>> GetAllAsync()
     {
-        await Task.Delay(0);
-        return dbSet;
+        return await Task.FromResult(dbSet);
     }
 
     public async Task<TEntity> GetByIdAsync(object Id)
@@ -25,7 +24,7 @@
     public async Task<IEnumerable<TEntity>> GetAsync(QueryFilter<TEntity> Filter)
     {
         var allitems = (await GetAllAsync()).ToList();
-        return await Filter.GetFilteredListAsync(allitems);
+        return await Task.FromResult(Filter.GetFilteredList(allitems));
     }
 
     public async Task<TEntity> InsertAsync(TEntity entity)

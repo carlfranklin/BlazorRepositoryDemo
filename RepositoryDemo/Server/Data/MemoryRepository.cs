@@ -10,20 +10,18 @@
         IdProperty = typeof(TEntity).GetProperty(idPropertyName);
     }
 
-    public async Task<IEnumerable<TEntity>> GetAsync(QueryFilter<TEntity> JsonExpression)
+    public async Task<IEnumerable<TEntity>> GetAsync(QueryFilter<TEntity> Filter)
     {
-        
         var allitems = (await GetAllAsync()).ToList();
-        return await JsonExpression.GetFilteredListAsync(allitems);
+        return await Task.FromResult(Filter.GetFilteredList(allitems));
     }
     public async Task<IEnumerable<TEntity>> GetAllAsync()
     {
-        await Task.Delay(0);
-        return Data;
+        return await Task.FromResult(Data); 
     }
+
     public async Task<TEntity> GetByIdAsync(object Id)
     {
-        await Task.Delay(0);
         if (IdProperty == null) return default(TEntity);
         TEntity entity = null;
         if (IdProperty.PropertyType.IsValueType)
@@ -38,30 +36,32 @@
                       where IdProperty.GetValue(x) == Id
                       select x).FirstOrDefault();
         }
-        return entity;
+        return await Task.FromResult(entity);
     }
 
     public async Task<TEntity> InsertAsync(TEntity Entity)
     {
-        await Task.Delay(0);
-        if (Entity == null) return default(TEntity);
+        if (Entity == null) 
+            return await Task.FromResult(default(TEntity));
+        
         try
         {
             lock (Data)
             {
                 Data.Add(Entity);
             }
-            return Entity;
+            return await Task.FromResult(Entity);
         }
         catch { }
-        return default(TEntity);
+        return await Task.FromResult(default(TEntity));
     }
 
     public async Task<TEntity> UpdateAsync(TEntity EntityToUpdate)
     {
-        await Task.Delay(0);
-        if (EntityToUpdate == null) return default(TEntity);
-        if (IdProperty == null) return default(TEntity);
+        if (EntityToUpdate == null)
+            return await Task.FromResult(default(TEntity));
+        if (IdProperty == null)
+            return await Task.FromResult(default(TEntity));
         try
         {
             var id = IdProperty.GetValue(EntityToUpdate);
@@ -73,20 +73,20 @@
                     var index = Data.IndexOf(entity);
                     Data[index] = EntityToUpdate;
                 }
-                return EntityToUpdate;
+                return await Task.FromResult(EntityToUpdate);
             }
             else
-                return default(TEntity);
+                return await Task.FromResult(default(TEntity));
         }
         catch { }
-        return default(TEntity);
+        return await Task.FromResult(default(TEntity));
     }
 
     public async Task<bool> DeleteAsync(TEntity EntityToDelete)
     {
-        if (EntityToDelete == null) return false;
+        if (EntityToDelete == null)
+            return await Task.FromResult(false);
 
-        await Task.Delay(0);
         try
         {
             if (Data.Contains(EntityToDelete))
@@ -95,11 +95,11 @@
                 {
                     Data.Remove(EntityToDelete);
                 }
-                return true;
+                return await Task.FromResult(true);
             }
         }
         catch { }
-        return false;
+        return await Task.FromResult(false);
     }
 
     public async Task<bool> DeleteByIdAsync(object Id)

@@ -140,12 +140,11 @@
 
     public async Task<TEntity> GetByIdAsync(object Id)
     {
-        await Task.Delay(0);
         using (IDbConnection db = new SqlConnection(_sqlConnectionString))
         {
             db.Open();
             var item = db.Get<TEntity>(Id);
-            return item;
+            return await Task.FromResult(item);
         }
     }
 

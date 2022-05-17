@@ -1109,7 +1109,7 @@ This is where you could implement additional methods in lieu of using the filter
 
 #### Add a CustomerRepository service
 
-To the client project's *Program.cs* file, add the following to `Main(string[] args)`:
+To the client project's *Program.cs* file, add the following:
 
 ```c#
 builder.Services.AddScoped<CustomerRepository>();
@@ -1147,7 +1147,7 @@ Change *\Pages\Index.razor* to the following:
 <br />
 <br />
 <p>
-    Search by Last Name: <input @bind=@SearchFilter />
+    Search by Name: <input @bind=@SearchFilter />
     <button @onclick="Search">Search</button>
     <br />
     <br />

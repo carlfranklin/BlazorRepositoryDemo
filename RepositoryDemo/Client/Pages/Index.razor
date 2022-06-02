@@ -12,7 +12,7 @@
 <button @onclick="DeleteRocky">Delete Rocky</button>
 <button @onclick="DeleteHugh">Delete Hugh</button>
 <button @onclick="GetJenny">GetJenny</button>
-<button @onclick="AddCustomers">Reset Data</button>
+<button @onclick="ResetData">Reset Data</button>
 <br />
 <br />
 <p>
@@ -154,6 +154,12 @@
         await AddCustomers();
     }
 
+    async Task ResetData()
+    {
+        await CustomerManager.DeleteAllAsync();
+        await AddCustomers();
+    }
+
     async Task Reload()
     {
         JennyMessage = "";
@@ -167,7 +173,14 @@
 
     async Task AddCustomers()
     {
-        await CustomerManager.DeleteAllAsync();
+        
+        // Added these lines to not clobber the existing data
+        var all = await CustomerManager.GetAllAsync();
+        if (all.Count() > 0)
+        {
+            await Reload();
+            return;
+        }
 
         Customers.Clear();
 

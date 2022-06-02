@@ -3,6 +3,5 @@
     public CustomerIndexedDBRepository(IBlazorDbFactory dbFactory)
         : base("RepositoryDemo", "Id", true, dbFactory)
     {
-
     }
 }

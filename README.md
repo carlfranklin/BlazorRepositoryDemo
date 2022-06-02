@@ -1143,7 +1143,7 @@ Change *\Pages\Index.razor* to the following:
 <button @onclick="DeleteRocky">Delete Rocky</button>
 <button @onclick="DeleteHugh">Delete Hugh</button>
 <button @onclick="GetJenny">GetJenny</button>
-<button @onclick="AddCustomers">Reset Data</button>
+<button @onclick="ResetData">Reset Data</button>
 <br />
 <br />
 <p>
@@ -1285,6 +1285,12 @@ Change *\Pages\Index.razor* to the following:
         await AddCustomers();
     }
 
+    async Task ResetData()
+    {
+        await CustomerManager.DeleteAllAsync();
+        await AddCustomers();
+    }
+
     async Task Reload()
     {
         JennyMessage = "";
@@ -1298,7 +1304,14 @@ Change *\Pages\Index.razor* to the following:
 
     async Task AddCustomers()
     {
-        await CustomerManager.DeleteAllAsync();
+        
+        // Added these lines to not clobber the existing data
+        var all = await CustomerManager.GetAllAsync();
+        if (all.Count() > 0)
+        {
+            await Reload();
+            return;
+        }
 
         Customers.Clear();
 
@@ -2373,4 +2386,247 @@ public class CustomerRepository : APIRepository<Customer>
 Run the app.
 
 It will look the same, but when you search, unlike the other repositories, the DapperRepository will create a custom SQL statement based on the parameters in the `QueryFilter`
+
+### Add a Client-Side Repository based on IndexedDB
+
+IndexedDB is a client-side database that you can use from JavaScript. There is no limit besides hard drive space to the amount of data you can store. However, the JavaScript API has been historically hard to use. We are going to skirt that issue by using a NuGet package that wraps it all up in a .NET library that you can call from Blazor.
+
+From https://developer.mozilla.org/en-US/docs/Web/API/IndexedDB_API:
+
+> IndexedDB is a low-level API for client-side storage of significant amounts of structured data, including files/blobs. This API uses indexes to enable high-performance searches of this data. While [Web Storage](https://developer.mozilla.org/en-US/docs/Web/API/Web_Storage_API) is useful for storing smaller amounts of data, it is less useful for storing larger amounts of structured data. IndexedDB provides a solution. 
+
+You may be wondering why I chose IndexedDB over say, SQLite, the documentation to which can be found at https://www.sqlite.org/index.html and is described thusly:
+
+> SQLite is a C-language library that implements a [small](https://www.sqlite.org/footprint.html), [fast](https://www.sqlite.org/fasterthanfs.html), [self-contained](https://www.sqlite.org/selfcontained.html), [high-reliability](https://www.sqlite.org/hirely.html), [full-featured](https://www.sqlite.org/fullsql.html), SQL database engine. SQLite is the [most used](https://www.sqlite.org/mostdeployed.html) database engine in the world. SQLite is built into all mobile phones and most computers and comes bundled inside countless other applications that people use every day.
+
+The main drawback of using SQLite with Blazor, is that you can't persist it directly to a store on the client machine. The only way to do that is to use sync techniques, such as Jeremy Likness does in this video: 
+
+https://www.youtube.com/watch?v=2UPiKgHv8YE
+
+Since I am bullish on the Repository Pattern, as you can see here, it makes more sense to use IndexedDB directly from Blazor, bypassing SQLite or any other intermediary altogether.
+
+#### BlazorDB
+
+BlazorDB is "an easy, fast way to use IndexedDB in a Blazor application." and is located at  https://github.com/nwestfall/BlazorDB
+
+First, install the NuGet Package `BlazorIndexedDB`
+
+You can alternatively add this package declaration to the *RepositoryDemo.Client* project's *.csproj* file:
+
+```xml
+<PackageReference Include="BlazorIndexedDB" Version="0.3.1" />
+```
+
+Next, add the following `<script>` tags to the *RepositoryDemo.Client* project's */wwwroot/index.html* file:
+
+```html
+<script src="_content/BlazorIndexedDB/dexie.min.js"></script>
+<script src="_content/BlazorIndexedDB/blazorDB.js"></script>
+```
+
+Add the following to the top of the *RepositoryDemo.Client* project's *Program.cs* file:
+
+```c#
+global using BlazorDB;
+```
+
+Add the following to the *RepositoryDemo.Client* project's *_Imports.razor* file:
+
+```c#
+@using BlazorDB
+```
+
+#### Create the IndexedDBRepository
+
+Add *IndexedDBRepository.cs* to the *RepositoryDemo.Client* project's *Services* folder:
+
+```c#
+using System.Reflection;
+
+public class IndexedDBRepository<TEntity> : IRepository<TEntity> where TEntity : class
+{
+    // injected
+    IBlazorDbFactory _dbFactory;
+    string _dbName = "";
+    string _primaryKeyName = "";
+    bool _autoGenerateKey;
+
+    IndexedDbManager manager;
+    string storeName = "";
+    Type entityType;
+    PropertyInfo primaryKey;
+
+    public IndexedDBRepository(string dbName, string primaryKeyName, 
+          bool autoGenerateKey, IBlazorDbFactory dbFactory)
+    {
+        _dbName = dbName;
+        _dbFactory = dbFactory;
+        _primaryKeyName = primaryKeyName;
+        _autoGenerateKey = autoGenerateKey;
+
+        entityType = typeof(TEntity);
+        storeName = entityType.Name;
+        primaryKey = entityType.GetProperty(primaryKeyName);
+    }
+
+    private async Task EnsureManager()
+    {
+        if (manager == null)
+        {
+            manager = await _dbFactory.GetDbManager(_dbName);
+            await manager.OpenDb();
+        }
+    }
+
+    public async Task DeleteAllAsync()
+    {
+        await EnsureManager();
+        await manager.ClearTableAsync(storeName);
+    }
+
+    public async Task<bool> DeleteAsync(TEntity EntityToDelete)
+    {
+        await EnsureManager();
+        var Id = primaryKey.GetValue(EntityToDelete);
+        return await DeleteByIdAsync(Id);
+    }
+
+    public async Task<bool> DeleteByIdAsync(object Id)
+    {
+        await EnsureManager();
+        try
+        {
+            await manager.DeleteRecordAsync(storeName, Id);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            // log exception
+            return false;
+        }
+    }
+
+    public async Task<IEnumerable<TEntity>> GetAllAsync()
+    {
+        await EnsureManager();
+        var array = await manager.ToArray<TEntity>(storeName);
+        if (array == null)
+            return new List<TEntity>();
+        else
+            return array.ToList();
+    }
+
+    public async Task<IEnumerable<TEntity>> GetAsync(QueryFilter<TEntity> Filter)
+    {
+        // We have to load all items and use LINQ to filter them. :(
+        var allitems = await GetAllAsync();
+        return Filter.GetFilteredList(allitems);
+    }
+
+    public async Task<TEntity> GetByIdAsync(object Id)
+    {
+        await EnsureManager();
+        var items = await manager.Where<TEntity>(storeName, _primaryKeyName, Id);
+        if (items.Any())
+            return items.First();
+        else
+            return null;
+    }
+
+    public async Task<TEntity> InsertAsync(TEntity Entity)
+    {
+        await EnsureManager();
+
+        // set Id field to zero if the key is autogenerated
+        if (_autoGenerateKey)
+        {
+            primaryKey.SetValue(Entity, 0);
+        }
+
+        try
+        {
+            var record = new StoreRecord<TEntity>()
+            {
+                StoreName = storeName,
+                Record = Entity
+            };
+            await manager.AddRecordAsync<TEntity>(record);
+            var allItems = await GetAllAsync();
+            var last = allItems.Last();
+            return last;
+        }
+        catch (Exception ex)
+        {
+            // log exception
+            return null;
+        }
+    }
+
+    public async Task<TEntity> UpdateAsync(TEntity EntityToUpdate)
+    {
+        await EnsureManager();
+        object Id = primaryKey.GetValue(EntityToUpdate);
+        try
+        {
+            await manager.UpdateRecord(new UpdateRecord<TEntity>()
+            {
+                StoreName = storeName,
+                Record = EntityToUpdate,
+                Key = Id
+            });
+            return EntityToUpdate;
+        }
+        catch (Exception ex)
+        {
+            // log exception
+            return null;
+        }
+    }
+}
+```
+
+
+
+
+
+Add *CustomerIndexedDBRepository.cs* to the *RepositoryDemo.Client* project's *Services* folder:
+
+```c#
+public class CustomerIndexedDBRepository : IndexedDBRepository<Customer>
+{
+    public CustomerIndexedDBRepository(IBlazorDbFactory dbFactory)
+        : base("RepositoryDemo", "Id", true, dbFactory)
+    {
+    }
+}
+```
+
+Add the following to the *RepositoryDemo.Client* project's *Program.cs* file just before the line `await builder.Build().RunAsync();`:
+
+```c#
+builder.Services.AddBlazorDB(options =>
+{
+    options.Name = "RepositoryDemo";
+    options.Version = 1;
+
+    // List all your entities here, but as StoreSchema objects
+    options.StoreSchemas = new List<StoreSchema>()
+    {
+        new StoreSchema()
+        {
+            Name = "Customer",      // Name of entity
+            PrimaryKey = "Id",      // Primary Key of entity
+            PrimaryKeyAuto = true,  // Whether or not the Primary key is generated
+            Indexes = new List<string> { "Id", "Name" }
+        }
+    };
+});
+builder.Services.AddScoped<CustomerIndexedDBRepository>();
+```
+
+Change line 2 of the *RepositoryDemo.Client* project's */Pages/Index.razor* file to the following:
+
+```c#
+@inject CustomerIndexedDBRepository CustomerManager
+```
 

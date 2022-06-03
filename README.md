@@ -2642,6 +2642,10 @@ public async Task<TEntity> InsertAsync(TEntity Entity)
 
 These issues shouldn't cause too much concern unless client memory constraints are an issue.
 
+##### Difference between Add and Put
+
+The `IndexedDbManager` (and IndexedDB) have two ways to insert a record: Add and Put. I chose to use Add. If you try to insert an element with key that already exists using the Put function it will trigger an update of the existing element, however if you use the Add function and an element with same id exists you will get an error with the following message: "Key already exists in the object store."
+
 #### Create a custom IndexedDBRepository class for the Customer entity
 
 Add *CustomerIndexedDBRepository.cs* to the *RepositoryDemo.Client* project's *Services* folder:

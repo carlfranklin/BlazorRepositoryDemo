@@ -2407,7 +2407,9 @@ The main drawback of using SQLite with Blazor, is that you can't persist it dire
 
 https://www.youtube.com/watch?v=2UPiKgHv8YE
 
-Since I am bullish on the Repository Pattern, as you can see here, it makes more sense to use IndexedDB directly from Blazor, bypassing SQLite or any other intermediary altogether.
+Since I am bullish on the Repository Pattern, as you can see here, it makes more sense to use IndexedDB directly from Blazor, bypassing SQLite or any other intermediary altogether. 
+
+So, I went looking for an abstraction over the JavaScript IndexedDB API, and I (like most people) started with Steve Sanderson's blog post from August, 2019: https://blog.stevensanderson.com/2019/08/03/blazor-indexeddb/. The package he used (https://github.com/Reshiru/Blazor.IndexedDB.Framework) has gone stale. What's more, it seems a bit invasive. So, I kept looking until I found BlazorDB.
 
 #### BlazorDB
 

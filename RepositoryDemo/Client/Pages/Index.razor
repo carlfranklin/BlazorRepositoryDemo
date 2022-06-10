@@ -1,11 +1,12 @@
 ﻿@page "/"
-@inject CustomerIndexedDBRepository CustomerManager
+@implements IDisposable
+@inject CustomerIndexedDBSyncRepository CustomerManager
 
 <h1>Repository Demo</h1>
 
 @foreach (var customer in Customers)
 {
-    <p>(@customer.Id) @customer.Name, @customer.Email</p>
+        <p>(@customer.Id) @customer.Name, @customer.Email</p>
 }
 
 <button @onclick="UpdateIsadora">Update Isadora</button>
@@ -47,6 +48,8 @@
     bool CaseSensitive = false;
     bool Descending = false;
     FilterOperator filterOption = FilterOperator.StartsWith;
+
+    bool Initialized = false;
 
     void SelectedOptionChanged(ChangeEventArgs args)
     {
@@ -149,8 +152,27 @@
         await InvokeAsync(StateHasChanged);
     }
 
+    protected async void OnlineStatusChanged(object sender, OnlineStatusEventArgs args)
+    {
+        if (args.IsOnline == false)
+        {
+            // reload from IndexedDB
+            Customers = (await CustomerManager.GetAllOfflineAsync()).ToList();
+        }
+        else
+        {
+            if (Initialized)
+                // reload from API
+                await Reload();
+            else
+                Initialized = true;
+        }
+        await InvokeAsync(StateHasChanged);
+    }
+
     protected override async Task OnInitializedAsync()
     {
+        CustomerManager.OnlineStatusChanged += OnlineStatusChanged;
         await AddCustomers();
     }
 
@@ -173,7 +195,6 @@
 
     async Task AddCustomers()
     {
-        
         // Added these lines to not clobber the existing data
         var all = await CustomerManager.GetAllAsync();
         if (all.Count() > 0)
@@ -213,5 +234,10 @@
             });
 
         await Reload();
+    }
+
+    void IDisposable.Dispose()
+    {
+        CustomerManager.OnlineStatusChanged -= OnlineStatusChanged;
     }
 }

@@ -3,8 +3,8 @@
     HttpClient http;
     
     // swap out the controller name
-    static string controllerName = "inmemorycustomers";
-    //static string controllerName = "efcustomers";
+    //static string controllerName = "inmemorycustomers";
+    static string controllerName = "efcustomers";
     //static string controllerName = "dappercustomers";
 
     public CustomerRepository(HttpClient _http)

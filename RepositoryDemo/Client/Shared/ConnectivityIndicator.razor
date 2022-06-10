@@ -1,0 +1,42 @@
+﻿@inject IJSRuntime _jsRuntime;
+@implements IAsyncDisposable
+
+@if (IsOnline)
+{
+    @ShowOnline
+}
+else
+{
+    @ShowOffline
+}
+
+@code {
+    [Parameter]
+    public RenderFragment ShowOnline { get; set; }
+
+    [Parameter]
+    public RenderFragment ShowOffline { get; set; }
+
+    public bool IsOnline { get; set; }
+
+    [JSInvokable("ConnectivityChanged")]
+    public void OnConnectivityChanged(bool isOnline)
+    {
+        if (IsOnline != isOnline)
+        {
+            IsOnline = isOnline;
+        }
+
+        StateHasChanged();
+    }
+
+    protected override async Task OnInitializedAsync() {
+        await base.OnInitializedAsync();
+
+        await _jsRuntime.InvokeVoidAsync("connectivity.initialize", DotNetObjectReference.Create(this));
+    }
+
+    public async ValueTask DisposeAsync() {
+        await _jsRuntime.InvokeVoidAsync("connectivity.`dispose`");
+    }
+}

@@ -2863,11 +2863,11 @@ Run the application, you should be able to see a green connectivity icon when ru
 
 Running online:
 
-![image-20220609212248231](md-images/image-20220609212248231.png)
+![image-20220609212248231](images/image-20220609212248231.png)
 
 Running offline:
 
-![image-20220609212350230](md-images/image-20220609212350230.png)
+![image-20220609212350230](images/image-20220609212350230.png)
 
 > :tip: Use the Browser's Network/Offline mode to test the functionality.
 
@@ -2890,7 +2890,7 @@ public class CustomerIndexedDBSyncRepository : IndexedDBSyncRepository<Customer>
 }
 ```
 
-![image-20220609212047709](md-images/image-20220609212047709.png)
+![image-20220609212047709](images/image-20220609212047709.png)
 
 We are going to need to track whether there is connectivity or not, so we are going to leverage our `connectivity.js` code, so we are going to need `IJSRuntime`. Let's inject it.
 
@@ -3994,17 +3994,17 @@ Try this test, run the application offline, and perform the following actions:
 
 Notice the IndexedDB shows just two customers:
 
-[![IndexedDB](https://github.com/payini/BlazorRepositoryDemo/raw/master/images/bc77f27ede50f12be11338c856c9c8a943ae85f500afba17df9d18dd13fa74e8.png)](https://github.com/payini/BlazorRepositoryDemo/blob/master/images/bc77f27ede50f12be11338c856c9c8a943ae85f500afba17df9d18dd13fa74e8.png)
+![IndexedDB](images/bc77f27ede50f12be11338c856c9c8a943ae85f500afba17df9d18dd13fa74e8.png)
 
 Also noticed that there is a new `Customers_transactions` table with all the transaction data we recorded.
 
-![image-20220609211634755](md-images/image-20220609211634755.png)
+![image-20220609211634755](images/image-20220609211634755.png)
 
 Now, enable back Network connectivity, and the database will sync.
 
 If you refresh the IndexedDB, you will notice it will still show up two customers, and if you display the data in the RepositoryDemo SQL database, you will see two customers only.
 
-![image-20220609211836651](md-images/image-20220609211836651.png)
+![image-20220609211836651](images/image-20220609211836651.png)
 
 There is still a lot of work to do, but this is a start. Please consider contributing to this repo.
 

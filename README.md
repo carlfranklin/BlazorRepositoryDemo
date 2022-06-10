@@ -4261,6 +4261,12 @@ If you refresh the IndexedDB, you will notice it will still show up two customer
 
 There is still a lot of work to do, but this is a start. Please consider contributing to this repo.
 
+## TIP:
 
+> As you work with IndexedDB via BlazorDB, you may find a situation where after changing the schema of the database in *Program.cs*, the changes are not reflected in the browser tools Application tab. If that's the case, just bump up the hosting ports in the Server project's *Properties/launchSettings.json* file. 
+>
+> ![image-20220610091423952](images/image-20220610091423952.png)
+>
+> Adding one to each of these ports, effectively changes the url, which means your IndexedDB database will be created anew.
 
 ### 

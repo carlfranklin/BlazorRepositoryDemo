@@ -3729,22 +3729,37 @@ builder.Services.AddScoped<CustomerIndexedDBSyncRepository>();
 await builder.Build().RunAsync();
 ```
 
-Update Index.razor to handle the `OnlineStatusChanged` event. Note that this will only work if we're injecting a `CustomerIndexedDBSyncRepository`
-
-*Index.razor*:
+Create a new page in the *Pages* folder called *Syncdemo.razor*:
 
 ```c#
-@page "/"
+@page "/syncdemo"
 @implements IDisposable
 @inject CustomerIndexedDBSyncRepository CustomerManager
 
-<h1>Repository Demo</h1>
+<h1>Offline Repository Sync Demo</h1>
 
+<div style="background-color:lightgray;padding:20px;">
+    This demo:
+    <ul>
+        <li>Downloads all data from server when first run online, and saves to IndexedDB</li>
+        <li>Keeps IndexedDB in sync with online source as you make changes</li>
+        <li>Keeps a list map of items with both local and online primary keys</li>
+        <li>When offline, keeps a list of transactions (insert, update, and delete)</li>
+        <li>When you go back online, it executes those transactions</li>
+    </ul>
+    What it does NOT do (yet):
+    <ul>
+        <li>Check for collisions and deal with the consequences</li>
+        <li>Efficiently sync local db from online source when you go back online after syncing</li>
+    </ul>
+</div>
+<br/>
 @foreach (var customer in Customers)
 {
-    <p>(@customer.Id) @customer.Name, @customer.Email</p>
+        <p>(@customer.Id) @customer.Name, @customer.Email</p>
 }
 
+<button @onclick="AddCustomer">Add Customer</button>
 <button @onclick="UpdateIsadora">Update Isadora</button>
 <button @onclick="DeleteRocky">Delete Rocky</button>
 <button @onclick="DeleteHugh">Delete Hugh</button>
@@ -3809,12 +3824,7 @@ Update Index.razor to handle the `OnlineStatusChanged` event. Note that this wil
         {
             var expression = new QueryFilter<Customer>();
 
-            expression.FilterProperties.Add(new FilterProperty {
-                Name = "Name", 
-                Value = SearchFilter, 
-                Operator = filterOption, 
-                CaseSensitive = CaseSensitive 
-            });
+            expression.FilterProperties.Add(new FilterProperty { Name = "Name", Value = SearchFilter, Operator = filterOption, CaseSensitive = CaseSensitive });
             expression.OrderByPropertyName = "Name";
             expression.OrderByDescending = Descending;
 
@@ -3827,6 +3837,7 @@ Update Index.razor to handle the `OnlineStatusChanged` event. Note that this wil
             //expression.FilterProperties.Add(new FilterProperty { Name = "Id", Value = "1", Operator = FilterOperator.GreaterThan });
             //expression.OrderByPropertyName = "Name";
             //expression.OrderByDescending = Descending;
+
 
             var list = await CustomerManager.GetAsync(expression);
             Customers = list.ToList();
@@ -3860,6 +3871,17 @@ Update Index.razor to handle the `OnlineStatusChanged` event. Note that this wil
             await CustomerManager.DeleteByIdAsync(hugh.Id);
             await Reload();
         }
+    }
+
+    async Task AddCustomer()
+    {
+        var customer = new Customer
+        {
+            Name = "New Customer",
+            Email = "new@customer.com"
+        };
+        customer = await CustomerManager.InsertAsync(customer);
+        Customers.Add(customer);
     }
 
     async Task UpdateIsadora()
@@ -3983,7 +4005,238 @@ Update Index.razor to handle the `OnlineStatusChanged` event. Note that this wil
 }
 ```
 
-Now run the app.
+Update Index.razor with a button to navigate to the `Syncdemo` page:
+
+*Index.razor*:
+
+```c#
+@page "/"
+@inject NavigationManager NavigationManager
+@inject CustomerRepository CustomerManager
+
+<h1>Repository Demo</h1>
+<button @onclick="GoToSyncDemo">Go to offline sync demo</button>
+<br/><br/>
+
+@foreach (var customer in Customers)
+{
+    <p>(@customer.Id) @customer.Name, @customer.Email</p>
+}
+
+<button @onclick="UpdateIsadora">Update Isadora</button>
+<button @onclick="DeleteRocky">Delete Rocky</button>
+<button @onclick="DeleteHugh">Delete Hugh</button>
+<button @onclick="GetJenny">GetJenny</button>
+<button @onclick="ResetData">Reset Data</button>
+<br />
+<br />
+<p>
+    Search by Name: <input @bind=@SearchFilter />
+    <button @onclick="Search">Search</button>
+    <br />
+    <br />
+    <input style="zoom:1.5;" type="checkbox" @bind="CaseSensitive" /> Case Sensitive
+    <br />
+    <input style="zoom:1.5;" type="checkbox" @bind="Descending" /> Descending Order
+    <br />
+    <br />
+    Options:<br />
+    <select @onchange="SelectedOptionChanged" size=3 style="padding:10px;">
+        <option selected value="StartsWith">Starts With</option>
+        <option value="EndsWith">Ends With</option>
+        <option value="Contains">Contains</option>
+    </select>
+
+</p>
+
+<br />
+<br />
+<p>@JennyMessage</p>
+
+
+@code
+{
+    List<Customer> Customers = new List<Customer>();
+    string JennyMessage = "";
+    string SearchFilter = "";
+    bool CaseSensitive = false;
+    bool Descending = false;
+    FilterOperator filterOption = FilterOperator.StartsWith;
+
+    void SelectedOptionChanged(ChangeEventArgs args)
+    {
+        switch (args.Value.ToString())
+        {
+            case "StartsWith":
+                filterOption = FilterOperator.StartsWith;
+                break;
+            case "EndsWith":
+                filterOption = FilterOperator.EndsWith;
+                break;
+            case "Contains":
+                filterOption = FilterOperator.Contains;
+                break;
+        }
+    }
+    void GoToSyncDemo()
+    {
+        NavigationManager.NavigateTo("syncdemo");
+    }
+
+    async Task Search()
+    {
+        try
+        {
+            var expression = new QueryFilter<Customer>();
+
+            expression.FilterProperties.Add(new FilterProperty { Name = "Name", Value = SearchFilter, Operator = filterOption, CaseSensitive = CaseSensitive });
+            expression.OrderByPropertyName = "Name";
+            expression.OrderByDescending = Descending;
+
+            //// Example, return where Id = 2
+            //expression.FilterProperties.Add(new FilterProperty { Name = "Id", Value = "2", Operator = FilterOperator.Equals });
+            //expression.OrderByPropertyName = "Name";
+            //expression.OrderByDescending = Descending;
+
+            //// Example, return where Id > 1
+            //expression.FilterProperties.Add(new FilterProperty { Name = "Id", Value = "1", Operator = FilterOperator.GreaterThan });
+            //expression.OrderByPropertyName = "Name";
+            //expression.OrderByDescending = Descending;
+
+
+            var list = await CustomerManager.GetAsync(expression);
+            Customers = list.ToList();
+
+        }
+        catch (Exception ex)
+        {
+            var msg = ex.Message;
+        }
+    }
+
+    async Task DeleteRocky()
+    {
+        var rocky = (from x in Customers
+                     where x.Email == "rocky@rhodes.com"
+                     select x).FirstOrDefault();
+        if (rocky != null)
+        {
+            await CustomerManager.DeleteAsync(rocky);
+            await Reload();
+        }
+    }
+
+    async Task DeleteHugh()
+    {
+        var hugh = (from x in Customers
+                    where x.Email == "hugh@jass.com"
+                    select x).FirstOrDefault();
+        if (hugh != null)
+        {
+            await CustomerManager.DeleteByIdAsync(hugh.Id);
+            await Reload();
+        }
+    }
+
+    async Task UpdateIsadora()
+    {
+        var isadora = (from x in Customers
+                       where x.Email == "isadora@jarr.com"
+                       select x).FirstOrDefault();
+        if (isadora != null)
+        {
+            isadora.Email = "isadora@isadorajarr.com";
+            await CustomerManager.UpdateAsync(isadora);
+            await Reload();
+        }
+    }
+
+    async Task GetJenny()
+    {
+        JennyMessage = "";
+        var jenny = (from x in Customers
+                     where x.Email == "jenny@jones.com"
+                     select x).FirstOrDefault();
+        if (jenny != null)
+        {
+            var jennyDb = await CustomerManager.GetByIdAsync(jenny.Id);
+            if (jennyDb != null)
+            {
+                JennyMessage = $"Retrieved Jenny via Id {jennyDb.Id}";
+            }
+        }
+        await InvokeAsync(StateHasChanged);
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await AddCustomers();
+    }
+
+    async Task ResetData()
+    {
+        await CustomerManager.DeleteAllAsync();
+        await AddCustomers();
+    }
+
+    async Task Reload()
+    {
+        JennyMessage = "";
+        var list = await CustomerManager.GetAllAsync();
+        if (list != null)
+        {
+            Customers = list.ToList();
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    async Task AddCustomers()
+    {
+        
+        // Added these lines to not clobber the existing data
+        var all = await CustomerManager.GetAllAsync();
+        if (all.Count() > 0)
+        {
+            await Reload();
+            return;
+        }
+
+        Customers.Clear();
+
+        await CustomerManager.InsertAsync(new Customer
+            {
+                Id = 1,
+                Name = "Isadora Jarr",
+                Email = "isadora@jarr.com"
+            });
+
+        await CustomerManager.InsertAsync(new Customer
+            {
+                Id = 2,
+                Name = "Rocky Rhodes",
+                Email = "rocky@rhodes.com"
+            });
+
+        await CustomerManager.InsertAsync(new Customer
+            {
+                Id = 3,
+                Name = "Jenny Jones",
+                Email = "jenny@jones.com"
+            });
+
+        await CustomerManager.InsertAsync(new Customer
+            {
+                Id = 4,
+                Name = "Hugh Jass",
+                Email = "hugh@jass.com"
+            });
+
+        await Reload();
+    }
+}
+```
+
+Now run the app and go to the `Syncdemo` page.
 
 Try this test, run the application offline, and perform the following actions:
 

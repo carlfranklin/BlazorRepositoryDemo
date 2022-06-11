@@ -22,7 +22,7 @@
 <br/>
 @foreach (var customer in Customers)
 {
-        <p>(@customer.Id) @customer.Name, @customer.Email</p>
+            <p>(@customer.Id) @customer.Name, @customer.Email</p>
 }
 
 <button @onclick="AddCustomer">Add Customer</button>
@@ -122,8 +122,9 @@
                      select x).FirstOrDefault();
         if (rocky != null)
         {
+            var index = Customers.IndexOf(rocky);
             await CustomerManager.DeleteAsync(rocky);
-            await Reload();
+            Customers.RemoveAt(index);
         }
     }
 
@@ -134,18 +135,19 @@
                     select x).FirstOrDefault();
         if (hugh != null)
         {
+            var index = Customers.IndexOf(hugh);
             await CustomerManager.DeleteByIdAsync(hugh.Id);
-            await Reload();
+            Customers.RemoveAt(index);
         }
     }
 
     async Task AddCustomer()
     {
         var customer = new Customer
-        {
-            Name = "New Customer",
-            Email = "new@customer.com"
-        };
+            {
+                Name = "New Customer",
+                Email = "new@customer.com"
+            };
         customer = await CustomerManager.InsertAsync(customer);
         Customers.Add(customer);
     }
@@ -159,7 +161,6 @@
         {
             isadora.Email = "isadora@isadorajarr.com";
             await CustomerManager.UpdateAsync(isadora);
-            await Reload();
         }
     }
 
@@ -198,9 +199,54 @@
         await InvokeAsync(StateHasChanged);
     }
 
+    protected async void OnDataChanged(object sender, DataChangedEventArgs args)
+    {
+        // We only care about changes to the Customer table
+        if (args.Table == "Customer")
+        {
+            if (args.Action == "delete-all")
+            {
+                // delete all?? How rude!
+                Customers.Clear();
+            }
+            else if (args.Action == "insert")
+            {
+                // an item was added. 
+                var customer = await CustomerManager.GetByIdAsync(args.Id);
+                Customers.Add(customer);
+                // add to 
+            }
+            else if (args.Action == "update")
+            {
+                // an item was updated
+                var customer = await CustomerManager.GetByIdAsync(args.Id);
+                if (customer != null)
+                {
+                    var localCustomer = (from x in Customers where x.Id == customer.Id select x).FirstOrDefault();
+                    if (localCustomer != null)
+                    {
+                        var index = Customers.IndexOf(localCustomer);
+                        Customers[index] = customer;
+                    }
+                }
+            }
+            else if (args.Action == "delete")
+            {
+                var localCustomer = (from x in Customers where x.Id.ToString() == args.Id select x).FirstOrDefault();
+                if (localCustomer != null)
+                {
+                    var index = Customers.IndexOf(localCustomer);
+                    Customers.RemoveAt(index);
+                }
+            }
+        }
+        await InvokeAsync(StateHasChanged);
+    }
+
     protected override async Task OnInitializedAsync()
     {
         CustomerManager.OnlineStatusChanged += OnlineStatusChanged;
+        CustomerManager.DataChanged += OnDataChanged;
         await AddCustomers();
     }
 

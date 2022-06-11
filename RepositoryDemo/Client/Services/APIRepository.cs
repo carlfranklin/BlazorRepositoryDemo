@@ -65,7 +65,9 @@ public class APIRepository<TEntity> : IRepository<TEntity>
     {
         try
         {
-            var arg = WebUtility.HtmlEncode(id.ToString());
+            var idString = id.ToString();
+            var len = idString.Length;
+            var arg = WebUtility.HtmlEncode(idString);
             var url = controllerName + "/" + arg;
             var result = await http.GetAsync(url);
             result.EnsureSuccessStatusCode();

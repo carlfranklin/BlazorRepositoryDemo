@@ -3,6 +3,10 @@ global using Newtonsoft.Json;
 global using System.Net;
 global using AvnRepository;
 global using BlazorDB;
+global using Microsoft.JSInterop;
+global using Microsoft.AspNetCore.SignalR.Client;
+global using Dapper.Contrib.Extensions;
+
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using RepositoryDemo.Client;

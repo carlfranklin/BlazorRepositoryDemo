@@ -6,6 +6,7 @@ global using Dapper;
 global using Dapper.Contrib.Extensions;
 global using System.Data;
 global using AvnRepository;
+global using Microsoft.AspNetCore.SignalR;
 using Microsoft.AspNetCore.ResponseCompression;
 using RepositoryDemo.Server.Data;
 
@@ -15,6 +16,12 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllersWithViews();
 builder.Services.AddRazorPages();
+builder.Services.AddSignalR();
+builder.Services.AddResponseCompression(opts =>
+{
+    opts.MimeTypes = ResponseCompressionDefaults.MimeTypes.Concat(
+        new[] { "application/octet-stream" });
+});
 builder.Services.AddSingleton<MemoryRepository<Customer>>(x =>
   new MemoryRepository<Customer>("Id"));
 builder.Services.AddTransient<RepositoryDemoContext, RepositoryDemoContext>();
@@ -38,7 +45,7 @@ else
 }
 
 app.UseHttpsRedirection();
-
+app.UseResponseCompression();
 app.UseBlazorFrameworkFiles();
 app.UseStaticFiles();
 
@@ -48,5 +55,5 @@ app.UseRouting();
 app.MapRazorPages();
 app.MapControllers();
 app.MapFallbackToFile("index.html");
-
+app.MapHub<DataSyncHub>("/DataSyncHub");
 app.Run();

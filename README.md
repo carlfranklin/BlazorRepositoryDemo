@@ -4269,4 +4269,10 @@ There is still a lot of work to do, but this is a start. Please consider contrib
 >
 > Adding one to each of these ports, effectively changes the url, which means your IndexedDB database will be created anew.
 
+## Using SignalR to sync database actions when online
+
+Details will follow, but the SyncDemo is set up now to automatically sync CRUD actions from other users while online, and whenever we come back online from being offline.
+
+
+
 ### 

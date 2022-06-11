@@ -12,8 +12,10 @@ public class IndexedDBSyncRepository<TEntity> : IRepository<TEntity>
     string _dbName = "";
     string _primaryKeyName = "";
     bool _autoGenerateKey;
+    HttpClient _httpClient;
 
-    IndexedDbManager manager;
+    protected HubConnection hubConnection;
+        IndexedDbManager manager;
     string storeName = "";
     string keyStoreName = "";
     Type entityType;
@@ -24,9 +26,17 @@ public class IndexedDBSyncRepository<TEntity> : IRepository<TEntity>
         OnlineStatusEventArgs e);
     public event OnlineStatusEventHandler OnlineStatusChanged;
 
-    public IndexedDBSyncRepository(string dbName, string primaryKeyName,
-        bool autoGenerateKey, IBlazorDbFactory dbFactory,
-        APIRepository<TEntity> apiRepository, IJSRuntime jsRuntime)
+    public delegate void DataChangedEventHandler(object sender,
+        DataChangedEventArgs e);
+    public event DataChangedEventHandler DataChanged;
+
+    public IndexedDBSyncRepository(string dbName,
+        string primaryKeyName,
+        bool autoGenerateKey,
+        IBlazorDbFactory dbFactory,
+        APIRepository<TEntity> apiRepository,
+        IJSRuntime jsRuntime,
+        HttpClient httpClient)
     {
         _dbName = dbName;
         _dbFactory = dbFactory;
@@ -34,14 +44,89 @@ public class IndexedDBSyncRepository<TEntity> : IRepository<TEntity>
         _jsRuntime = jsRuntime;
         _primaryKeyName = primaryKeyName;
         _autoGenerateKey = autoGenerateKey;
+        _httpClient = httpClient;
 
         entityType = typeof(TEntity);
         storeName = entityType.Name;
         keyStoreName = $"{storeName}{Globals.KeysSuffix}";
         primaryKey = entityType.GetProperty(primaryKeyName);
 
-        _ = _jsRuntime.InvokeVoidAsync("connectivity.initialize",
+        _jsRuntime.InvokeVoidAsync("connectivity.initialize",
             DotNetObjectReference.Create(this));
+
+        hubConnection = new HubConnectionBuilder()
+           .WithUrl($"{_httpClient.BaseAddress}DataSyncHub")
+           .Build();
+
+        Task.Run(async () => await AsyncConstructor());
+
+    }
+
+    async Task AsyncConstructor()
+    {
+        hubConnection.On<string, string, string>("ReceiveSyncRecord", async (Table, Action, Id) =>
+        {
+            // SignalR may not be the BEST way to send and receive messages.
+            // If this were a production system, I would use a cloud-based queue or messaging system,
+            // but SignalR makes for a good simple demonstration of how to keep client side data in sync.
+
+            await EnsureManager();
+
+            // only interested in our table
+            if (Table == storeName)
+            {
+                if (Action == "insert")
+                {
+                    // an item was inserted
+                    // fetch it
+                    var item = await _apiRepository.GetByIdAsync(Id);
+                    if (item != null)
+                    {
+                        // add to the local database
+                        var localItem = await InsertOfflineAsync(item);
+                    }
+                }
+                else if (Action == "update")
+                {
+                    // an item was updated
+                    // update the item in the local database
+                    var item = await _apiRepository.GetByIdAsync(Id);
+                    if (item != null)
+                    {
+                        var localItem = await UpdateKeyToLocal(item);
+                        await UpdateOfflineAsync(localItem);
+                    }
+                }
+                else if (Action == "delete")
+                {
+                    // an item was deleted
+                    // delete the item in the local database
+                    var localId = await GetLocalId(Id);
+                    await DeleteByIdOfflineAsync(localId);
+                }
+                else if (Action == "delete-all")
+                {
+                    // clear local database
+                    await DeleteAllOfflineAsync();
+                }
+
+                // raise DataChanged event
+                var args = new DataChangedEventArgs(Table, Action, Id);
+                DataChanged?.Invoke(this, args);
+            }
+        });
+
+        if (IsOnline)
+        {
+            try
+            {
+                await hubConnection.StartAsync();
+            }
+            catch (Exception ex)
+            {
+
+            }
+        }
     }
 
     public string LocalStoreName
@@ -78,7 +163,10 @@ public class IndexedDBSyncRepository<TEntity> : IRepository<TEntity>
     public async Task DeleteAllAsync()
     {
         if (IsOnline)
+        {
             await _apiRepository.DeleteAllAsync();
+            await hubConnection.InvokeAsync("SyncRecord", storeName, "delete-all", "");
+        }
 
         await DeleteAllOfflineAsync();
     }
@@ -121,8 +209,11 @@ public class IndexedDBSyncRepository<TEntity> : IRepository<TEntity>
 
         if (IsOnline)
         {
+            var onlineId = primaryKey.GetValue(EntityToDelete);
             deleted = await _apiRepository.DeleteAsync(EntityToDelete);
-            await DeleteOfflineAsync(EntityToDelete);
+            var localEntity = await UpdateKeyToLocal(EntityToDelete);
+            await DeleteOfflineAsync(localEntity);
+            await hubConnection.InvokeAsync("SyncRecord", storeName, "delete", onlineId.ToString());
         }
         else
         {
@@ -136,7 +227,7 @@ public class IndexedDBSyncRepository<TEntity> : IRepository<TEntity>
     {
         await EnsureManager();
         var Id = primaryKey.GetValue(EntityToDelete);
-        return await DeleteByIdAsync(Id);
+        return await DeleteByIdOfflineAsync(Id);
     }
 
     public async Task<bool> DeleteByIdAsync(object Id)
@@ -147,6 +238,7 @@ public class IndexedDBSyncRepository<TEntity> : IRepository<TEntity>
         {
             deleted = await _apiRepository.DeleteByIdAsync(Id);
             await DeleteByIdOfflineAsync(Id);
+            await hubConnection.InvokeAsync("SyncRecord", storeName, "delete", Id.ToString());
         }
         else
         {
@@ -162,7 +254,18 @@ public class IndexedDBSyncRepository<TEntity> : IRepository<TEntity>
         try
         {
             RecordDeleteByIdAsync(Id);
-            await manager.DeleteRecordAsync(storeName, Id);
+            var result = await manager.DeleteRecordAsync(storeName, Id);
+            if (result.Failed) return false;
+
+            // delete key map
+            var keys = await GetKeys();
+            if (keys.Count > 0)
+            {
+                var key = (from x in keys where x.LocalId.ToString() == Id.ToString() select x).FirstOrDefault();
+                if (key != null)
+                    await manager.DeleteRecordAsync(keyStoreName, Id);
+            }
+
             return true;
         }
         catch (Exception ex)
@@ -226,10 +329,12 @@ public class IndexedDBSyncRepository<TEntity> : IRepository<TEntity>
                     var keys = new List<OnlineOfflineKey>();
                     for (int i = 0; i < allData.Count(); i++)
                     {
+                        var localId = primaryKey.GetValue(localData[i]);
                         var key = new OnlineOfflineKey()
                         {
+                            Id = Convert.ToInt32(localId),
                             OnlineId = primaryKey.GetValue(allData[i]),
-                            LocalId = primaryKey.GetValue(localData[i]),
+                            LocalId = localId,
                         };
                         keys.Add(key);
                     };
@@ -291,7 +396,9 @@ public class IndexedDBSyncRepository<TEntity> : IRepository<TEntity>
         if (IsOnline)
         {
             returnValue = await _apiRepository.InsertAsync(Entity);
-            await InsertOfflineAsync(Entity);
+            var Id = primaryKey.GetValue(returnValue);
+            await InsertOfflineAsync(returnValue);
+            await hubConnection.InvokeAsync("SyncRecord", storeName, "insert", Id.ToString());
         }
         else
         {
@@ -307,15 +414,32 @@ public class IndexedDBSyncRepository<TEntity> : IRepository<TEntity>
 
         try
         {
+            var onlineId = primaryKey.GetValue(Entity);
+
             var record = new StoreRecord<TEntity>()
             {
                 StoreName = storeName,
                 Record = Entity
             };
-            var entity = await manager.AddRecordAsync<TEntity>(record);
-
-            var allItems = await GetAllAsync();
+            var result = await manager.AddRecordAsync<TEntity>(record);
+            var allItems = await GetAllOfflineAsync();
             var last = allItems.Last();
+            var localId = primaryKey.GetValue(last);
+            
+            // record in the keys database
+            var key = new OnlineOfflineKey()
+            {
+                Id = Convert.ToInt32(localId),
+                OnlineId = onlineId,
+                LocalId = localId
+            };
+            var storeRecord = new StoreRecord<OnlineOfflineKey>
+            {
+                DbName = _dbName,
+                StoreName = keyStoreName,
+                Record = key
+            };
+            await manager.AddRecordAsync(storeRecord);
 
             RecordInsertAsync(last);
 
@@ -360,8 +484,11 @@ public class IndexedDBSyncRepository<TEntity> : IRepository<TEntity>
 
         if (IsOnline)
         {
-            await UpdateOfflineAsync(EntityToUpdate);
             returnValue = await _apiRepository.UpdateAsync(EntityToUpdate);
+            var Id = primaryKey.GetValue(returnValue);
+            await UpdateKeyToLocal(returnValue);
+            await UpdateOfflineAsync(returnValue);
+            await hubConnection.InvokeAsync("SyncRecord", storeName, "update", Id.ToString());
         }
         else
         {
@@ -420,6 +547,24 @@ public class IndexedDBSyncRepository<TEntity> : IRepository<TEntity>
         }
     }
 
+    private async Task<object> GetLocalId(object OnlineId)
+    {
+        var keys = await GetKeys();
+        var item = (from x in keys where x.OnlineId.ToString() == OnlineId.ToString() select x).FirstOrDefault();
+        var localId = item.LocalId;
+        localId = JsonConvert.DeserializeObject<object>(localId.ToString());
+        return localId;
+    }
+
+    private async Task<object> GetOnlineId(object LocalId)
+    {
+        var keys = await GetKeys();
+        var item = (from x in keys where x.LocalId.ToString() == LocalId.ToString() select x).FirstOrDefault();
+        var onlineId = item.OnlineId;
+        onlineId = JsonConvert.DeserializeObject<object>(onlineId.ToString());
+        return onlineId;
+    }
+
     private async Task<List<OnlineOfflineKey>> GetKeys()
     {
         await EnsureManager();
@@ -440,6 +585,40 @@ public class IndexedDBSyncRepository<TEntity> : IRepository<TEntity>
         }
 
         return returnList;
+    }
+
+    private async Task<TEntity> UpdateKeyToLocal(TEntity Entity)
+    {
+        var OnlineId = primaryKey.GetValue(Entity);
+        OnlineId = JsonConvert.DeserializeObject<object>(OnlineId.ToString());
+
+        var keys = await GetKeys();
+        if (keys == null) return null;
+
+        var item = (from x in keys
+                    where x.OnlineId.ToString() == OnlineId.ToString()
+                    select x).FirstOrDefault();
+
+        if (item == null) return null;
+
+        var key = item.LocalId;
+
+        var typeName = key.GetType().Name;
+
+        if (typeName == nameof(Int64))
+        {
+            if (primaryKey.PropertyType.Name == nameof(Int32))
+                key = Convert.ToInt32(key);
+        }
+        else if (typeName == "string")
+        {
+            if (primaryKey.PropertyType.Name != "string")
+                key = key.ToString();
+        }
+
+        primaryKey.SetValue(Entity, key);
+
+        return Entity;
     }
 
     private async Task<TEntity> UpdateKeyFromLocal(TEntity Entity)
@@ -497,10 +676,13 @@ public class IndexedDBSyncRepository<TEntity> : IRepository<TEntity>
                             var insertedEntity = await
                                 _apiRepository.InsertAsync(localTransaction.Entity);
                             // update the keys table
+                            var localId = primaryKey.GetValue(localTransaction.Entity);
+                            var onlineId = primaryKey.GetValue(insertedEntity);
                             var key = new OnlineOfflineKey()
                             {
-                                OnlineId = primaryKey.GetValue(insertedEntity),
-                                LocalId = primaryKey.GetValue(localTransaction.Entity),
+                                Id = Convert.ToInt32(localId),
+                                OnlineId = onlineId,
+                                LocalId = localId
                             };
                             await manager.AddRecordAsync<OnlineOfflineKey>
                                 (new StoreRecord<OnlineOfflineKey>
@@ -508,22 +690,35 @@ public class IndexedDBSyncRepository<TEntity> : IRepository<TEntity>
                                     StoreName = keyStoreName,
                                     Record = key
                                 });
+
+                            // send a sync message 
+                            await hubConnection.InvokeAsync("SyncRecord", storeName, "insert", onlineId.ToString());
+
                             break;
 
                         case LocalTransactionTypes.Update:
                             localTransaction.Entity = await UpdateKeyFromLocal
                                 (localTransaction.Entity);
                             await _apiRepository.UpdateAsync(localTransaction.Entity);
+                            onlineId = primaryKey.GetValue(localTransaction.Entity);
+                            // send a sync message 
+                            await hubConnection.InvokeAsync("SyncRecord", storeName, "update", onlineId.ToString());
+
                             break;
 
                         case LocalTransactionTypes.Delete:
                             localTransaction.Entity = await UpdateKeyFromLocal
                                 (localTransaction.Entity);
+                            onlineId = primaryKey.GetValue(localTransaction.Entity);
                             await _apiRepository.DeleteAsync(localTransaction.Entity);
+                            // send a sync message 
+                            await hubConnection.InvokeAsync("SyncRecord", storeName, "delete", onlineId.ToString());
                             break;
 
                         case LocalTransactionTypes.DeleteAll:
                             await _apiRepository.DeleteAllAsync();
+                            // send a sync message 
+                            await hubConnection.InvokeAsync("SyncRecord", storeName, "delete-all", "");
                             break;
 
                         default:
@@ -536,6 +731,12 @@ public class IndexedDBSyncRepository<TEntity> : IRepository<TEntity>
             }
 
             await DeleteAllTransactionsAsync();
+
+            // TODO: Get all new records since last online
+            // Get last record id
+            // ask for new records since that id was recorded in the database
+            // may require a time stamp field in the data record (invasive!)
+
             return true;
         }
     }

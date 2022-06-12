@@ -8,7 +8,16 @@ We will use `IRepository` on the server to access data, and also on the client t
 
 In fact, we will be using generics everywhere to build our classes. We want to avoid repeating boilerplate code for each entity we want to access, or data store.
 
-We will start by making an in-memory repository, and then we will make a generic repository for accessing SQL databases using Entity Framework.
+This demo goes way beyond using the repository pattern. This is what we will accomplish:
+
+- Implement a server-side repository using a list in memory
+- Implement a server-side repository using Entity Framework 
+- Implement a server-side repository using Dapper
+- Create API Controllers that use these three repositories
+- Implement a client-side repository to call an API Controller
+- Implement a client-side repository to access IndexedDB, even when offline
+- Implement a version of the IndexedDB Repository that syncs data using an API Repository when online
+- Implement real-time data updates using a message broker (SignalR) to keep data in sync while the app is in use.
 
 #### Create a Blazor WebAssembly App
 

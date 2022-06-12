@@ -236,8 +236,9 @@ public class IndexedDBSyncRepository<TEntity> : IRepository<TEntity>
 
         if (IsOnline)
         {
+            var localId = await GetLocalId(Id);
+            await DeleteByIdOfflineAsync(localId);
             deleted = await _apiRepository.DeleteByIdAsync(Id);
-            await DeleteByIdOfflineAsync(Id);
             await hubConnection.InvokeAsync("SyncRecord", storeName, "delete", Id.ToString());
         }
         else
@@ -261,9 +262,11 @@ public class IndexedDBSyncRepository<TEntity> : IRepository<TEntity>
             var keys = await GetKeys();
             if (keys.Count > 0)
             {
-                var key = (from x in keys where x.LocalId.ToString() == Id.ToString() select x).FirstOrDefault();
+                var key = (from x in keys 
+                           where x.LocalId.ToString() == Id.ToString() 
+                           select x).FirstOrDefault();
                 if (key != null)
-                    await manager.DeleteRecordAsync(keyStoreName, Id);
+                    await manager.DeleteRecordAsync(keyStoreName, key.Id);
             }
 
             return true;
@@ -550,7 +553,9 @@ public class IndexedDBSyncRepository<TEntity> : IRepository<TEntity>
     private async Task<object> GetLocalId(object OnlineId)
     {
         var keys = await GetKeys();
-        var item = (from x in keys where x.OnlineId.ToString() == OnlineId.ToString() select x).FirstOrDefault();
+        var item = (from x in keys 
+                    where x.OnlineId.ToString() == OnlineId.ToString() 
+                    select x).FirstOrDefault();
         var localId = item.LocalId;
         localId = JsonConvert.DeserializeObject<object>(localId.ToString());
         return localId;
@@ -559,7 +564,9 @@ public class IndexedDBSyncRepository<TEntity> : IRepository<TEntity>
     private async Task<object> GetOnlineId(object LocalId)
     {
         var keys = await GetKeys();
-        var item = (from x in keys where x.LocalId.ToString() == LocalId.ToString() select x).FirstOrDefault();
+        var item = (from x in keys 
+                    where x.LocalId.ToString() == LocalId.ToString() 
+                    select x).FirstOrDefault();
         var onlineId = item.OnlineId;
         onlineId = JsonConvert.DeserializeObject<object>(onlineId.ToString());
         return onlineId;
@@ -745,28 +752,6 @@ public class IndexedDBSyncRepository<TEntity> : IRepository<TEntity>
     {
         await EnsureManager();
         await manager.ClearTableAsync(LocalStoreName);
-    }
-
-    public async Task<bool> UpdateOfflineIds(TEntity onlineEntity, TEntity offlineEntity)
-    {
-        await EnsureManager();
-
-        object Id = primaryKey.GetValue(offlineEntity);
-
-        var array = await manager.ToArray<LocalTransaction<TEntity>>(LocalStoreName);
-        if (array == null)
-            return false;
-        else
-        {
-            var items = array.Where(i => i.Entity != null).ToList();
-
-            foreach (var item in items)
-            {
-                var updatedEntity = await UpdateOfflineAsync(item, onlineEntity);
-            }
-        }
-
-        return true;
     }
 
     public async Task<LocalTransaction<TEntity>>

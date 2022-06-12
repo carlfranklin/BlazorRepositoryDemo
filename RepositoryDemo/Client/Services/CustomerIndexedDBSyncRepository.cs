@@ -1,5 +1,4 @@
-﻿
-public class CustomerIndexedDBSyncRepository : IndexedDBSyncRepository<Customer>
+﻿public class CustomerIndexedDBSyncRepository : IndexedDBSyncRepository<Customer>
 {
     public CustomerIndexedDBSyncRepository(IBlazorDbFactory dbFactory,
                                             CustomerRepository customerRepository,

@@ -2383,6 +2383,10 @@ Run the app.
 
 It will look the same, but when you search, unlike the other repositories, the DapperRepository will create a custom SQL statement based on the parameters in the `QueryFilter`
 
+The solution up to this point can be found in the *BlazorRepositoryDemo-BeforeIndexedDB* folder.
+
+
+
 ### Add a Client-Side Repository based on IndexedDB
 
 IndexedDB is a client-side database that you can use from JavaScript. There is no limit besides hard drive space to the amount of data you can store. However, the JavaScript API has been historically hard to use. We are going to skirt that issue by using a NuGet package that wraps it all up in a .NET library that you can call from Blazor.
@@ -2688,6 +2692,8 @@ Change line 2 of the *RepositoryDemo.Client* project's */Pages/Index.* file
 Run the app!
 
 Try using the browser tools to simulate being offline. Note that the app still works.
+
+The solution up to this point can be found in the *BlazorRepositoryDemo-BeforeIndexedDBSync* folder.
 
 ## Synchronize Data to a Server
 
@@ -4353,6 +4359,8 @@ If you refresh the IndexedDB, you will notice it will still show two customers, 
 ![image-20220609211836651](images/image-20220609211836651.png)
 
 
+
+The solution up to this point can be found in the *BlazorRepositoryDemo-BeforeSignalRSync* folder.
 
 ## Using SignalR to sync database actions when online
 

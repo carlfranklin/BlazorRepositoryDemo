@@ -1,0 +1,216 @@
+﻿@page "/"
+@inject CustomerRepository CustomerManager
+
+<h1>Repository Demo</h1>
+
+@foreach (var customer in Customers)
+{
+    <p>(@customer.Id) @customer.Name, @customer.Email</p>
+}
+
+<button @onclick="UpdateIsadora">Update Isadora</button>
+<button @onclick="DeleteRocky">Delete Rocky</button>
+<button @onclick="DeleteHugh">Delete Hugh</button>
+<button @onclick="GetJenny">GetJenny</button>
+<button @onclick="ResetData">Reset Data</button>
+<br />
+<br />
+<p>
+    Search by Name: <input @bind=@SearchFilter />
+    <button @onclick="Search">Search</button>
+    <br />
+    <br />
+    <input style="zoom:1.5;" type="checkbox" @bind="CaseSensitive" /> Case Sensitive
+    <br />
+    <input style="zoom:1.5;" type="checkbox" @bind="Descending" /> Descending Order
+    <br />
+    <br />
+    Options:<br />
+    <select @onchange="SelectedOptionChanged" size=3 style="padding:10px;">
+        <option selected value="StartsWith">Starts With</option>
+        <option value="EndsWith">Ends With</option>
+        <option value="Contains">Contains</option>
+    </select>
+
+</p>
+
+<br />
+<br />
+<p>@JennyMessage</p>
+
+
+@code
+{
+    List<Customer> Customers = new List<Customer>();
+    string JennyMessage = "";
+    string SearchFilter = "";
+    bool CaseSensitive = false;
+    bool Descending = false;
+    FilterOperator filterOption = FilterOperator.StartsWith;
+
+    void SelectedOptionChanged(ChangeEventArgs args)
+    {
+        switch (args.Value.ToString())
+        {
+            case "StartsWith":
+                filterOption = FilterOperator.StartsWith;
+                break;
+            case "EndsWith":
+                filterOption = FilterOperator.EndsWith;
+                break;
+            case "Contains":
+                filterOption = FilterOperator.Contains;
+                break;
+        }
+    }
+
+    async Task Search()
+    {
+        try
+        {
+            var expression = new QueryFilter<Customer>();
+
+            expression.FilterProperties.Add(new FilterProperty { Name = "Name", Value = SearchFilter, Operator = filterOption, CaseSensitive = CaseSensitive });
+            expression.OrderByPropertyName = "Name";
+            expression.OrderByDescending = Descending;
+
+            //// Example, return where Id = 2
+            //expression.FilterProperties.Add(new FilterProperty { Name = "Id", Value = "2", Operator = FilterOperator.Equals });
+            //expression.OrderByPropertyName = "Name";
+            //expression.OrderByDescending = Descending;
+
+            //// Example, return where Id > 1
+            //expression.FilterProperties.Add(new FilterProperty { Name = "Id", Value = "1", Operator = FilterOperator.GreaterThan });
+            //expression.OrderByPropertyName = "Name";
+            //expression.OrderByDescending = Descending;
+
+
+            var list = await CustomerManager.GetAsync(expression);
+            Customers = list.ToList();
+
+        }
+        catch (Exception ex)
+        {
+            var msg = ex.Message;
+        }
+    }
+
+    async Task DeleteRocky()
+    {
+        var rocky = (from x in Customers
+                     where x.Email == "rocky@rhodes.com"
+                     select x).FirstOrDefault();
+        if (rocky != null)
+        {
+            await CustomerManager.DeleteAsync(rocky);
+            await Reload();
+        }
+    }
+
+    async Task DeleteHugh()
+    {
+        var hugh = (from x in Customers
+                    where x.Email == "hugh@jass.com"
+                    select x).FirstOrDefault();
+        if (hugh != null)
+        {
+            await CustomerManager.DeleteByIdAsync(hugh.Id);
+            await Reload();
+        }
+    }
+
+    async Task UpdateIsadora()
+    {
+        var isadora = (from x in Customers
+                       where x.Email == "isadora@jarr.com"
+                       select x).FirstOrDefault();
+        if (isadora != null)
+        {
+            isadora.Email = "isadora@isadorajarr.com";
+            await CustomerManager.UpdateAsync(isadora);
+            await Reload();
+        }
+    }
+
+    async Task GetJenny()
+    {
+        JennyMessage = "";
+        var jenny = (from x in Customers
+                     where x.Email == "jenny@jones.com"
+                     select x).FirstOrDefault();
+        if (jenny != null)
+        {
+            var jennyDb = await CustomerManager.GetByIdAsync(jenny.Id);
+            if (jennyDb != null)
+            {
+                JennyMessage = $"Retrieved Jenny via Id {jennyDb.Id}";
+            }
+        }
+        await InvokeAsync(StateHasChanged);
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await AddCustomers();
+    }
+
+    async Task ResetData()
+    {
+        await CustomerManager.DeleteAllAsync();
+        await AddCustomers();
+    }
+
+    async Task Reload()
+    {
+        JennyMessage = "";
+        var list = await CustomerManager.GetAllAsync();
+        if (list != null)
+        {
+            Customers = list.ToList();
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    async Task AddCustomers()
+    {
+        // Added these lines to not clobber the existing data
+        var all = await CustomerManager.GetAllAsync();
+        if (all.Count() > 0)
+        {
+            await Reload();
+            return;
+        }
+
+        Customers.Clear();
+
+        await CustomerManager.InsertAsync(new Customer
+            {
+                Id = 1,
+                Name = "Isadora Jarr",
+                Email = "isadora@jarr.com"
+            });
+
+        await CustomerManager.InsertAsync(new Customer
+            {
+                Id = 2,
+                Name = "Rocky Rhodes",
+                Email = "rocky@rhodes.com"
+            });
+
+        await CustomerManager.InsertAsync(new Customer
+            {
+                Id = 3,
+                Name = "Jenny Jones",
+                Email = "jenny@jones.com"
+            });
+
+        await CustomerManager.InsertAsync(new Customer
+            {
+                Id = 4,
+                Name = "Hugh Jass",
+                Email = "hugh@jass.com"
+            });
+
+        await Reload();
+    }
+}

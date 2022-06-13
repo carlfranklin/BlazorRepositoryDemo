@@ -2934,7 +2934,8 @@ public class IndexedDBSyncRepository<TEntity> : IRepository<TEntity>
     string keyStoreName = "";
     Type entityType;
     PropertyInfo primaryKey;
-
+    public bool IsOnline { get; set; } = true;
+        
     public delegate void OnlineStatusEventHandler(object sender, 
         OnlineStatusEventArgs e);
     public event OnlineStatusEventHandler OnlineStatusChanged;
@@ -2962,8 +2963,6 @@ In a similar way we added the `OnConnectivityChanged` and `DisposeAsync` methods
 Add the following code above the constructor:
 
 ```c#
-    public bool IsOnline { get; set; } = true;
-
     [JSInvokable("ConnectivityChanged")]
     public async void OnConnectivityChanged(bool isOnline)
     {
@@ -3115,19 +3114,20 @@ public class IndexedDBSyncRepository<TEntity> : IRepository<TEntity>
     [JSInvokable("ConnectivityChanged")]
     public async void OnConnectivityChanged(bool isOnline)
     {
-        if (IsOnline != isOnline)
+        IsOnline = isOnline;
+
+        if (!isOnline)
         {
-            IsOnline = isOnline;
             OnlineStatusChanged?.Invoke(this,
                 new OnlineStatusEventArgs { IsOnline = false });
         }
-
-        if (IsOnline)
+        else
         {
             await SyncLocalToServer();
             OnlineStatusChanged?.Invoke(this,
                 new OnlineStatusEventArgs { IsOnline = true });
         }
+        
     }
 
     private async Task EnsureManager()
@@ -3463,7 +3463,7 @@ public class IndexedDBSyncRepository<TEntity> : IRepository<TEntity>
         {
             returnValue = await _apiRepository.UpdateAsync(EntityToUpdate);
             var Id = primaryKey.GetValue(returnValue);
-            await UpdateKeyToLocal(returnValue);
+            returnValue = await UpdateKeyToLocal(returnValue);
             await UpdateOfflineAsync(returnValue);
         }
         else

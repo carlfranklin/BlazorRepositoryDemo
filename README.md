@@ -4724,14 +4724,14 @@ public class IndexedDBSyncRepository<TEntity> : IRepository<TEntity>
     [JSInvokable("ConnectivityChanged")]
     public async void OnConnectivityChanged(bool isOnline)
     {
-        if (IsOnline != isOnline)
+        IsOnline = isOnline;
+
+        if (!isOnline)
         {
-            IsOnline = isOnline;
             OnlineStatusChanged?.Invoke(this,
                 new OnlineStatusEventArgs { IsOnline = false });
         }
-
-        if (IsOnline)
+        else
         {
             await SyncLocalToServer();
             OnlineStatusChanged?.Invoke(this,
@@ -5079,9 +5079,8 @@ public class IndexedDBSyncRepository<TEntity> : IRepository<TEntity>
         {
             returnValue = await _apiRepository.UpdateAsync(EntityToUpdate);
             var Id = primaryKey.GetValue(returnValue);
-            await UpdateKeyToLocal(returnValue);
+            returnValue = await UpdateKeyToLocal(returnValue);
             await UpdateOfflineAsync(returnValue);
-            await hubConnection.InvokeAsync("SyncRecord", storeName, "update", Id.ToString());
         }
         else
         {

@@ -494,7 +494,7 @@ public class IndexedDBSyncRepository<TEntity> : IRepository<TEntity>
             var Id = primaryKey.GetValue(returnValue);
             returnValue = await UpdateKeyToLocal(returnValue);
             await UpdateOfflineAsync(returnValue);
-            await hubConnection.InvokeAsync("SyncRecord", storeName, "update", onlineId.ToString());
+            await hubConnection.InvokeAsync("SyncRecord", storeName, "update", Id.ToString());
         }
         else
         {

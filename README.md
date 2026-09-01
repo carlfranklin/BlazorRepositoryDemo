@@ -1476,12 +1476,12 @@ Press the green **Play** button to execute the statement
 Double-click on the **RepositoryDemo** project in the Solution Explorer to expose the *.csproj* file, and add the latest versions of the following packages:
 
 ```xml
-<PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="8.0.4" />
-<PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="8.0.4">
+<PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.11" />
+<PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="10.0.11">
     <PrivateAssets>all</PrivateAssets>
     <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 </PackageReference>
-<PackageReference Include="Microsoft.VisualStudio.Web.CodeGeneration.Design" Version="8.0.2" />
+<PackageReference Include="Microsoft.VisualStudio.Web.CodeGeneration.Design" Version="10.0.2" />
 ```
 
 #### Scaffold an EF DbContext from the database
@@ -4520,7 +4520,7 @@ This hub will be used to send messages to other clients after we've inserted, up
 Now, on the client side we need to add the latest version of the `Microsoft.AspNetCore.SignalR.Client` NuGet package. You can add the following to your *RepositoryDemo.Client.csproj* file:
 
 ```xml
-<PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="8.0.4" />
+<PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="10.0.11" />
 ```
 
 In the Client's *Program.cs* we need the following:

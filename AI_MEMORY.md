@@ -16,7 +16,8 @@ Durable knowledge discovered while working on this project: design decisions, no
 - `1-In Memory Only` upgraded to net10.0 (2026-09-01): same package bumps (AvnRepository 10.0.2, WebAssembly(.Server) 10.0.11, Newtonsoft.Json 13.0.4). Clean build: 0 errors, 46 pre-existing warnings.
 - `2-Added EF Repository` upgraded to net10.0 (2026-09-01): same bumps plus EF Core SqlServer/Tools 8.0.4→10.0.11, CodeGeneration.Design 8.0.2→10.0.2. Clean build: 0 errors, 62 pre-existing warnings.
 - `3-Added Dapper Repository` upgraded to net10.0 (2026-09-01): same bumps as folder 2 (Dapper 2.1.35, Dapper.Contrib 2.0.78, System.Data.SqlClient 4.8.6 already correct). Clean build: 0 errors, 80 pre-existing warnings.
-- `4-Added IndexedDB Repository` upgraded to net10.0 (2026-09-01): same bumps as folder 3 (BlazorIndexedDB 0.3.1 already correct). Clean build: 0 errors, 91 pre-existing warnings. Folder 5 still on net8.0.
+- `4-Added IndexedDB Repository` upgraded to net10.0 (2026-09-01): same bumps as folder 3 (BlazorIndexedDB 0.3.1 already correct). Clean build: 0 errors, 91 pre-existing warnings.
+- `5-Added IndexedDB Sync Repository` upgraded to net10.0 (2026-09-01): same bumps as folder 4. Clean build: 0 errors, 149 pre-existing warnings. **All 6 solution variants (root + folders 1-5) are now on .NET 10.**
 - SDK 10.0.400 installed on this machine.
 
 ## AvnRepository tool-vs-library gotcha (IMPORTANT)

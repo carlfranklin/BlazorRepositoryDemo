@@ -14,7 +14,8 @@ Durable knowledge discovered while working on this project: design decisions, no
 - Root `RepositoryDemo/` has NO .sln file — build the server csproj directly: `dotnet build RepositoryDemo/RepositoryDemo/RepositoryDemo.csproj` (it references the Client project).
 - Root solution upgraded to net10.0: `AvnRepository` 10.0.2, `Microsoft.AspNetCore.Components.WebAssembly(.Server)` 10.0.11, `Microsoft.EntityFrameworkCore.*` 10.0.11, `Microsoft.VisualStudio.Web.CodeGeneration.Design` 10.0.2, `BlazorIndexedDB` 0.3.1, `Dapper` 2.1.35, `Dapper.Contrib` 2.0.78, `Newtonsoft.Json` 13.0.4, `System.Data.SqlClient` 4.8.6. Clean build: 0 errors, 158 pre-existing nullable/unused-var warnings.
 - `1-In Memory Only` upgraded to net10.0 (2026-09-01): same package bumps (AvnRepository 10.0.2, WebAssembly(.Server) 10.0.11, Newtonsoft.Json 13.0.4). Clean build: 0 errors, 46 pre-existing warnings.
-- `2-Added EF Repository` upgraded to net10.0 (2026-09-01): same bumps plus EF Core SqlServer/Tools 8.0.4→10.0.11, CodeGeneration.Design 8.0.2→10.0.2. Clean build: 0 errors, 62 pre-existing warnings. Folders 3-5 still on net8.0.
+- `2-Added EF Repository` upgraded to net10.0 (2026-09-01): same bumps plus EF Core SqlServer/Tools 8.0.4→10.0.11, CodeGeneration.Design 8.0.2→10.0.2. Clean build: 0 errors, 62 pre-existing warnings.
+- `3-Added Dapper Repository` upgraded to net10.0 (2026-09-01): same bumps as folder 2 (Dapper 2.1.35, Dapper.Contrib 2.0.78, System.Data.SqlClient 4.8.6 already correct). Clean build: 0 errors, 80 pre-existing warnings. Folders 4-5 still on net8.0.
 - SDK 10.0.400 installed on this machine.
 
 ## AvnRepository tool-vs-library gotcha (IMPORTANT)

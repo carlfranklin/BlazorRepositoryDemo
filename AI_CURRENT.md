@@ -4,10 +4,12 @@ Concise checkpoint of the current task: goal, current state, relevant files/clas
 
 ## Current task
 
-Memory-system restructure (in progress, 2026-09-01): `agentmemory/startup.md` is now the single source of truth for session rules. In this repo: `startup.md` reduced to a one-line pointer, `AI_RULES.md` and `ahem.wav` deleted (canonical copies live in agentmemory). `AI_MEMORY.md` + `AI_CURRENT.md` stay. Changes left uncommitted for Carl.
+None — waiting for instructions.
 
 ## Recent state
 
+- **Completed 2026-09-01:** `1-In Memory Only` solution upgraded to .NET 10 — both projects retargeted to net10.0, AvnRepository 8.0.1→10.0.2, WebAssembly(.Server) 8.0.4→10.0.11, Newtonsoft.Json 13.0.3→13.0.4. Clean build, 0 errors (46 pre-existing nullable/unused-var warnings). Left uncommitted for Carl.
+- **Completed 2026-09-01:** Memory-system restructure — `agentmemory/startup.md` is the single source of truth for session rules; per-repo `startup.md` is a one-line pointer, `AI_RULES.md`/`ahem.wav` deleted. Committed by Carl as f08ec5b.
 - **Completed 2026-09-01:** Root `RepositoryDemo` solution upgraded to .NET 10 — clean build, 0 errors. Committed by Carl as 30b584b. See AI_MEMORY.md for the AvnRepository 10.0.2 republish details and package versions.
-- Numbered folders 1-5 still have uncommitted .NET 10 csproj changes from a prior session that reference the broken AvnRepository 10.0.1 (dotnet tool) — they will need AvnRepository bumped to 10.0.2 + Newtonsoft.Json 13.0.4 before they build.
+- Numbered folders 2-5 are still on net8.0 / AvnRepository 8.0.1. When upgrading them, use AvnRepository 10.0.2 + Newtonsoft.Json 13.0.4 (10.0.1 was a broken dotnet-tool publish).
 - Memory files are tracked in git (committed in 30b584b).
